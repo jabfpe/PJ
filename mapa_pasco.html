@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distrito Judicial de Pasco · Mapa de provincias y dependencias</title>
+<style>
+  :root{
+    --ink:#12202f; --ink2:#3d5165; --muted:#6b7c8d; --line:#dfe6ee;
+    --bg:#eef2f7; --card:#ffffff; --red:#8e2b23; --red2:#c0392b; --gold:#b98a2f;
+    --blue:#1f4e79;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(900px 500px at 8% -10%, #e3ecf7 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #f6ecea 0%, transparent 55%),
+      var(--bg);
+    min-height:100vh; padding:22px;
+  }
+  .app{max-width:1500px;margin:0 auto}
+
+  /* ---------- cabecera ---------- */
+  .hero{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+  .hero .titles{min-width:280px}
+  .eyebrow{font-size:.66rem;letter-spacing:2.2px;text-transform:uppercase;color:var(--red);
+    font-weight:700;margin-bottom:7px}
+  .hero h1{font-size:1.72rem;line-height:1.12;letter-spacing:-.2px;font-weight:700}
+  .hero h1 span{color:var(--red)}
+  .hero p{font-size:.8rem;color:var(--muted);margin-top:6px}
+  .kpis{margin-left:auto;display:grid;grid-template-columns:repeat(5,minmax(96px,1fr));gap:9px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 13px;
+    box-shadow:0 8px 22px rgba(24,50,80,.06)}
+  .kpi .k{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .kpi .v{font-size:1.16rem;font-weight:700;margin-top:3px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .kpi .v small{font-size:.6rem;font-weight:600;color:var(--muted);margin-left:2px}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:minmax(320px, 720px) minmax(0,1fr);gap:16px;align-items:start}
+  main.wide{grid-template-columns:minmax(0,1fr)}
+  main.wide .side{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);
+    gap:16px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 14px 34px rgba(24,50,80,.08);overflow:hidden}
+  .map-card{display:flex;flex-direction:column;position:relative}
+  .card-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap}
+  .card-head h2{font-size:.86rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink2)}
+  .modes{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .modes button,.modes select{font:inherit;font-size:.72rem;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);padding:6px 10px;border-radius:9px;cursor:pointer;transition:.15s}
+  .modes button:hover{border-color:#c3d2e2;background:#fff}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .modes select{display:none}
+  .modes select.on{display:block}
+  .modes select:disabled{opacity:.45}
+
+  .map-wrap{position:relative;flex:1;display:flex;min-height:0}
+  svg#map{display:block;width:100%;height:100%;min-height:600px;max-height:76vh;
+    touch-action:none;cursor:grab;user-select:none;padding:8px 0}
+  svg#map.dragging{cursor:grabbing}
+  .prov{stroke:#ffffff;stroke-width:2.6;stroke-linejoin:round;cursor:pointer;outline:none;
+    transition:filter .18s, stroke .18s, opacity .2s}
+  .prov:hover{stroke:#12202f;stroke-width:2.6;filter:drop-shadow(0 6px 14px rgba(20,40,70,.35))}
+  .prov:focus-visible{stroke:#12202f;stroke-width:3}
+  .prov.dim{opacity:.35}
+  #selLayer path{fill:none;stroke:#12202f;stroke-width:7;stroke-linejoin:round;pointer-events:none}
+  #selLayer path{filter:drop-shadow(0 3px 8px rgba(10,25,45,.45))}
+  .plabel{font-size:18px;font-weight:700;text-anchor:middle;pointer-events:none;
+    fill:#ffffff;stroke:rgba(10,20,30,.6);stroke-width:var(--sw,1.4px);paint-order:stroke}
+  .plabel.dark{fill:#16222f;stroke:rgba(255,255,255,.9);
+    stroke-width:calc(var(--sw,1.4px) * .45)}
+  .pleader{stroke:#aebbca;stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+  .map-tools{display:flex;gap:6px;margin-left:6px}
+  .map-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);font-size:.95rem;cursor:pointer;
+    display:grid;place-items:center;transition:.15s}
+  .map-tools button:hover{background:#fff;border-color:#c3d2e2}
+  .legend{border-top:1px solid var(--line);padding:10px 16px;background:#fbfcfe;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .legend .t{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .legend .bar{height:8px;border-radius:5px;flex:1;min-width:120px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .legend .r{display:flex;justify-content:space-between;font-size:.64rem;color:var(--ink2);
+    gap:10px;white-space:nowrap}
+  .legend.cat .bar,.legend.cat .r{display:none}
+  .legend .items{display:none;flex-wrap:wrap;gap:4px 14px;font-size:.64rem;color:var(--ink2)}
+  .legend.cat .items{display:flex}
+  .legend .items i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;
+    vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+  .tooltip{position:absolute;z-index:9;pointer-events:none;background:#12202f;color:#fff;
+    border-radius:9px;padding:7px 10px;transform:translate(-50%,-120%);font-size:.74rem;
+    box-shadow:0 10px 24px rgba(10,25,45,.4);white-space:nowrap}
+  .tooltip b{display:block;font-size:.78rem;margin-bottom:1px}
+  .tooltip span{color:#b9cbe0;font-size:.68rem}
+
+  /* ---------- panel ---------- */
+  .panel{padding:16px;display:flex;flex-direction:column;gap:13px}
+  .panel-top{display:flex;align-items:flex-start;gap:10px}
+  .panel-top h3{font-size:1.3rem;letter-spacing:-.2px;line-height:1.1}
+  .panel-top .sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+  .chip{margin-left:auto;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;
+    padding:5px 9px;border-radius:20px;background:#f1f5fa;color:var(--ink2);border:1px solid var(--line);
+    white-space:nowrap}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .stat .k{font-size:.57rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .stat .v{font-size:1rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:.62rem;font-weight:600;color:var(--muted);margin-left:2px}
+  .sec{font-size:.6rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:8px}
+  .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .bars{display:flex;flex-direction:column;gap:7px}
+  .barrow{display:grid;grid-template-columns:132px 1fr 34px;gap:8px;align-items:center;font-size:.72rem}
+  .barrow .nm{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barrow .tr{height:8px;background:#eef2f7;border-radius:5px;overflow:hidden}
+  .barrow .tr i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#c0392b,#8e2b23)}
+  .barrow .vl{text-align:right;color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  .note{font-size:.68rem;line-height:1.55;color:var(--muted)}
+  .note b{color:var(--ink2)}
+
+  /* ---------- organos ---------- */
+  .organs{display:flex;flex-direction:column;gap:8px}
+  .organ{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;
+    gap:0 12px;background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .organ .n{grid-row:span 2;font-size:1.5rem;font-weight:700;letter-spacing:-.6px;color:var(--red);
+    line-height:1.1;align-self:center;text-align:center}
+  .organ .lbl{font-size:.62rem;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+  .organ .d{font-size:.72rem;color:var(--ink2);margin-top:2px}
+
+  .table-card{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:.76rem;min-width:720px}
+  thead th{font-size:.6rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);
+    text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);background:#f7f9fc;
+    white-space:nowrap;cursor:pointer;user-select:none}
+  thead th:first-child,thead th:nth-child(2){text-align:left}
+  thead th:hover{color:var(--ink)}
+  tbody td{padding:9px 14px;border-bottom:1px solid #eef2f7;text-align:right;
+    font-variant-numeric:tabular-nums;color:var(--ink2)}
+  tbody td:first-child{text-align:left;font-weight:650;color:var(--ink)}
+  tbody td:nth-child(2){text-align:left;color:var(--muted)}
+  tbody tr{cursor:pointer;transition:.12s}
+  tbody tr:hover{background:#f7fafd}
+  tbody tr.sel{background:#fdf3f1}
+  tbody tr.sel td:first-child{color:var(--red)}
+  tfoot td{padding:10px 14px;font-weight:700;border-top:1px solid var(--line);text-align:right;
+    background:#f7f9fc;font-variant-numeric:tabular-nums}
+  tfoot td:first-child{text-align:left}
+  tfoot td:nth-child(2){text-align:left;color:var(--muted);font-weight:600}
+
+  footer{margin-top:16px;font-size:.66rem;color:var(--muted);text-align:center;line-height:1.8}
+
+  @media (max-width:1040px){
+    main{grid-template-columns:1fr}
+    .kpis{margin-left:0;width:100%;grid-template-columns:repeat(3,1fr)}
+    .organs{grid-template-columns:1fr}
+    svg#map{max-height:66vh}
+  }
+  @media (max-width:560px){
+    body{padding:12px}
+    .hero h1{font-size:1.3rem}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .panel{padding:13px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <div class="titles">
+      <div class="eyebrow">Poder Judicial del Perú · Dependencias JUN 2026</div>
+      <h1>Distrito Judicial de <span>Pasco</span></h1>
+      <p>Las dos provincias del ámbito judicial y sus dependencias</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Provincias</div><div class="v">2</div></div>
+      <div class="kpi"><div class="k">Dependencias</div><div class="v">19</div></div>
+      <div class="kpi"><div class="k">Población</div><div class="v">156,913</div></div>
+      <div class="kpi"><div class="k">Superficie</div><div class="v">7,261 <small>km²</small></div></div>
+      <div class="kpi"><div class="k">Densidad</div><div class="v">21.61 <small>hab/km²</small></div></div>
+    </div>
+  </header>
+
+  <main class="">
+    <section class="card map-card">
+      <div class="card-head">
+        <h2>Provincias del distrito judicial</h2>
+        <div class="modes">
+          <button id="mCat" class="on">Colores del mapa</button>
+          <button id="mVar">Ver por indicador</button>
+          <select id="indicator" disabled>
+            <option value="pop">Población</option>
+            <option value="area">Superficie</option>
+            <option value="dens">Densidad</option>
+            <option value="dep">Dependencias</option>
+          </select>
+        </div>
+        <div class="map-tools">
+          <button id="zin" title="Acercar" aria-label="Acercar">+</button>
+          <button id="zout" title="Alejar" aria-label="Alejar">−</button>
+          <button id="zreset" title="Vista completa" aria-label="Vista completa">⤢</button>
+        </div>
+      </div>
+      <div class="map-wrap">
+      <svg id="map" viewBox="0 0 760 568.0" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="Mapa de provincias del Distrito Judicial de Pasco">
+        <defs>
+          <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0d2135" flood-opacity=".35"/>
+          </filter>
+        </defs>
+        <g id="viewport">
+          <g id="provs"><path class="prov" id="p-Daniel-Alcides-Carrion" d="M165.6,44.3 L171.0,50.9 L171.5,53.6 L177.7,60.2 L175.8,62.7 L175.9,65.8 L173.2,65.7 L169.8,68.8 L171.0,72.4 L170.3,74.0 L170.4,76.2 L166.5,79.6 L167.3,84.2 L164.4,85.1 L161.7,84.5 L156.5,86.1 L152.5,85.8 L148.5,83.3 L146.0,87.7 L143.8,88.9 L142.4,89.3 L139.9,88.3 L138.1,89.1 L132.4,87.6 L128.7,92.7 L121.6,86.1 L119.0,82.4 L116.7,82.5 L113.3,88.3 L110.7,87.6 L108.5,89.1 L108.0,93.4 L108.6,97.4 L101.1,98.9 L93.0,105.5 L89.1,105.1 L86.5,106.1 L81.9,105.1 L76.6,105.8 L75.3,108.0 L71.0,109.0 L69.6,111.3 L69.6,113.1 L68.0,114.7 L69.0,117.8 L67.3,119.1 L64.0,120.1 L61.2,118.7 L58.8,118.6 L56.5,120.4 L49.2,121.4 L48.2,122.6 L47.9,125.9 L48.8,129.1 L47.3,130.4 L46.9,132.2 L38.4,133.1 L33.8,139.0 L32.8,141.9 L30.6,142.8 L33.0,146.6 L31.2,148.2 L31.0,155.0 L30.0,159.9 L34.7,165.9 L37.7,168.4 L38.3,173.3 L40.2,177.6 L41.5,178.8 L42.0,189.3 L43.0,191.5 L44.5,192.3 L45.2,195.9 L45.9,203.4 L45.2,206.7 L55.5,202.6 L55.7,206.4 L58.7,208.2 L57.8,212.6 L61.5,214.5 L63.0,219.2 L62.7,223.5 L61.4,225.9 L66.2,229.8 L69.5,234.0 L72.8,240.7 L77.9,239.2 L80.4,240.5 L83.9,240.8 L86.0,242.1 L86.8,244.3 L91.0,247.3 L95.8,254.3 L100.7,253.7 L101.1,256.5 L103.2,256.4 L108.0,258.3 L111.8,261.5 L115.1,269.1 L120.0,272.9 L120.2,277.0 L132.6,276.4 L135.8,274.7 L138.5,275.6 L140.0,274.3 L141.9,277.3 L144.0,278.5 L143.7,282.1 L145.6,286.8 L149.1,287.6 L148.9,291.3 L150.4,293.8 L153.7,297.5 L158.2,299.0 L161.0,286.3 L164.8,278.1 L169.0,275.3 L172.1,271.7 L174.4,270.9 L176.2,268.5 L175.9,264.2 L178.9,262.5 L179.8,261.0 L179.3,259.0 L180.1,257.5 L178.7,254.1 L179.1,252.6 L181.7,247.6 L187.2,241.1 L192.0,241.4 L201.3,245.2 L208.3,244.4 L215.2,238.9 L218.4,237.5 L219.6,235.2 L224.4,231.2 L235.0,225.1 L241.0,229.3 L243.0,222.9 L248.1,219.8 L249.7,216.3 L250.6,210.9 L257.1,207.6 L262.2,208.5 L267.1,207.9 L271.8,205.8 L274.1,207.8 L274.6,212.5 L278.0,214.9 L280.8,214.3 L286.3,206.8 L286.4,203.2 L292.2,201.0 L293.4,190.3 L296.1,188.4 L297.7,188.3 L303.0,182.1 L305.4,182.5 L310.1,180.1 L312.3,177.4 L312.5,172.2 L313.7,168.8 L312.8,164.3 L309.6,161.0 L307.1,160.3 L305.7,160.8 L303.5,154.1 L305.5,151.0 L305.8,147.3 L308.1,145.3 L308.4,143.8 L302.2,139.6 L301.4,138.0 L300.4,137.9 L299.2,134.2 L295.8,130.1 L293.8,129.4 L290.8,130.0 L286.5,127.1 L286.1,125.4 L287.1,123.0 L279.8,115.9 L275.3,108.9 L273.5,103.7 L271.6,99.9 L272.0,95.6 L269.6,89.3 L269.7,86.9 L265.6,80.1 L265.6,75.0 L263.5,73.0 L263.8,70.2 L265.9,67.9 L265.1,65.6 L266.6,65.1 L267.2,61.7 L264.3,53.0 L261.2,48.9 L259.3,47.6 L259.2,46.2 L262.1,41.4 L257.9,35.5 L256.4,30.2 L252.2,30.0 L249.1,34.2 L246.5,36.2 L239.9,37.9 L236.8,36.2 L236.3,34.9 L231.2,33.9 L226.9,31.9 L219.1,43.1 L216.6,43.3 L205.2,49.4 L200.0,49.0 L192.7,50.3 L191.3,47.6 L185.6,47.8 L177.9,43.9 L171.8,45.5 L165.6,44.3 Z" data-key="Daniel Alcides Carrion" tabindex="0" role="button" aria-label="Provincia de Daniel Alcides Carrión"></path>
+<path class="prov" id="p-Pasco" d="M273.5,103.7 L275.3,108.9 L279.8,115.9 L287.1,123.0 L286.1,125.4 L286.5,127.1 L290.8,130.0 L293.8,129.4 L295.8,130.1 L299.2,134.2 L300.4,137.9 L301.4,138.0 L302.2,139.6 L308.4,143.8 L308.1,145.3 L305.8,147.3 L305.5,151.0 L303.5,154.1 L305.7,160.8 L307.1,160.3 L309.6,161.0 L312.8,164.3 L313.7,168.8 L312.5,172.2 L312.3,177.4 L310.1,180.1 L305.4,182.5 L303.0,182.1 L297.7,188.3 L296.1,188.4 L293.4,190.3 L292.2,201.0 L286.4,203.2 L286.3,206.8 L280.8,214.3 L278.0,214.9 L274.6,212.5 L274.1,207.8 L271.8,205.8 L267.1,207.9 L262.2,208.5 L257.1,207.6 L250.6,210.9 L249.7,216.3 L248.1,219.8 L243.0,222.9 L241.0,229.3 L235.0,225.1 L224.4,231.2 L219.6,235.2 L218.4,237.5 L215.2,238.9 L208.3,244.4 L201.3,245.2 L192.0,241.4 L187.2,241.1 L181.7,247.6 L179.1,252.6 L178.7,254.1 L180.1,257.5 L179.3,259.0 L179.8,261.0 L178.9,262.5 L175.9,264.2 L176.2,268.5 L174.4,270.9 L172.1,271.7 L169.0,275.3 L164.8,278.1 L161.0,286.3 L158.2,299.0 L153.7,297.5 L150.4,293.8 L148.9,291.3 L149.1,287.6 L145.6,286.8 L143.7,282.1 L144.0,278.5 L141.9,277.3 L140.0,274.3 L138.5,275.6 L135.8,274.7 L132.6,276.4 L120.2,277.0 L120.0,272.9 L115.1,269.1 L111.8,261.5 L108.0,258.3 L103.2,256.4 L101.1,256.5 L100.7,253.7 L95.8,254.3 L91.0,247.3 L86.8,244.3 L86.0,242.1 L83.9,240.8 L80.4,240.5 L77.9,239.2 L72.8,240.7 L72.9,243.1 L70.7,245.5 L70.0,250.4 L67.2,255.5 L64.3,257.1 L64.2,259.4 L70.6,264.7 L70.3,266.9 L71.7,272.4 L74.1,276.3 L73.5,279.4 L76.8,284.3 L76.1,287.2 L78.9,294.4 L80.7,296.5 L80.5,298.9 L85.1,302.5 L88.8,310.3 L89.3,313.1 L87.3,315.8 L88.0,317.6 L87.6,319.5 L85.5,320.8 L90.1,325.5 L90.1,327.4 L89.1,328.5 L89.5,330.0 L91.4,331.6 L93.1,337.0 L96.0,340.0 L101.4,338.6 L103.8,339.5 L104.2,342.0 L105.9,342.6 L108.8,349.3 L110.9,351.6 L111.5,356.5 L112.7,360.5 L114.0,361.5 L114.0,366.2 L115.9,369.3 L115.6,375.3 L117.0,389.8 L118.9,392.2 L118.7,396.6 L121.0,399.0 L122.9,409.0 L121.7,411.1 L122.7,413.2 L122.6,418.9 L124.8,426.0 L124.8,427.3 L119.8,432.6 L119.5,435.2 L116.7,436.2 L115.3,438.3 L115.4,440.2 L117.4,443.5 L116.1,449.0 L116.1,453.4 L118.0,456.7 L120.0,456.5 L122.4,454.9 L124.6,457.7 L125.4,460.4 L127.4,459.7 L129.8,460.4 L134.9,463.9 L143.2,467.0 L145.9,472.2 L146.9,477.1 L150.1,480.7 L153.7,487.2 L163.5,497.3 L167.2,499.3 L172.7,497.3 L175.0,495.6 L177.9,496.4 L184.4,496.2 L186.1,492.9 L189.7,493.6 L192.7,488.6 L200.2,493.8 L201.2,493.7 L202.3,491.7 L204.7,491.2 L207.5,492.1 L221.1,491.3 L223.4,488.4 L225.6,488.5 L229.1,490.3 L229.0,493.9 L242.9,498.2 L247.7,502.0 L250.2,500.8 L253.2,496.5 L256.5,495.2 L266.5,500.6 L265.6,503.5 L266.7,511.5 L272.4,524.5 L280.5,525.1 L283.5,527.5 L288.3,527.7 L301.2,535.7 L304.4,534.9 L308.7,530.5 L310.5,530.6 L312.1,533.1 L315.5,534.9 L318.6,538.0 L323.1,534.9 L325.9,534.8 L323.6,530.8 L323.5,528.2 L320.4,526.4 L319.6,522.5 L317.4,522.1 L316.3,518.9 L312.2,514.4 L308.8,513.8 L305.5,508.5 L304.9,502.7 L305.5,499.1 L306.7,497.6 L306.5,495.4 L308.1,494.2 L309.0,491.8 L308.4,488.2 L310.7,482.7 L310.2,479.9 L311.6,478.7 L310.3,477.4 L311.6,475.8 L311.1,474.2 L309.4,474.5 L308.4,473.8 L309.5,472.4 L309.4,471.2 L305.0,470.4 L304.4,467.6 L305.0,465.8 L301.8,464.9 L300.1,463.0 L300.4,461.8 L303.6,460.4 L299.9,455.8 L300.0,454.7 L302.0,453.4 L300.0,450.2 L302.4,448.4 L301.2,446.7 L299.1,447.2 L297.7,446.2 L298.3,444.2 L296.2,442.6 L296.7,440.3 L295.8,437.6 L296.5,435.4 L294.5,435.0 L295.1,433.5 L292.4,430.1 L293.3,428.9 L293.1,427.3 L293.9,427.9 L295.5,427.3 L294.2,424.7 L296.6,424.1 L296.7,423.1 L294.6,420.9 L292.5,421.6 L293.3,419.5 L292.7,418.2 L290.3,418.2 L289.4,413.4 L290.6,407.8 L289.2,404.9 L289.0,402.3 L287.3,401.9 L288.9,400.5 L287.2,397.7 L287.4,396.7 L288.5,396.3 L289.9,398.4 L290.9,396.9 L294.1,398.3 L298.6,393.9 L299.4,394.4 L299.3,396.1 L297.5,397.0 L296.5,400.4 L300.4,400.3 L302.2,402.0 L303.2,401.6 L305.9,402.9 L314.7,399.2 L317.3,400.0 L317.6,397.7 L319.2,398.2 L320.7,397.4 L324.6,399.4 L328.7,399.7 L329.4,401.5 L329.1,403.6 L329.9,404.6 L329.5,405.8 L326.9,407.5 L329.8,409.7 L329.0,411.5 L329.7,413.8 L333.8,414.4 L334.8,415.4 L335.3,418.6 L337.5,419.4 L337.6,421.6 L339.3,422.0 L339.5,423.8 L341.5,424.2 L345.2,422.8 L347.5,420.7 L350.3,420.4 L350.7,419.1 L352.7,420.0 L353.0,418.9 L351.9,417.8 L352.8,416.4 L357.7,418.0 L363.3,417.1 L365.2,415.4 L366.4,415.6 L368.8,418.1 L371.3,415.7 L373.0,416.0 L372.9,417.4 L374.6,417.6 L376.0,419.0 L376.9,418.3 L378.8,419.2 L380.2,421.1 L379.4,423.2 L377.6,424.4 L378.5,425.2 L382.4,418.2 L386.0,415.9 L386.4,411.4 L389.0,409.4 L389.6,408.0 L392.3,406.3 L392.2,402.8 L395.0,399.5 L396.3,396.5 L396.6,392.5 L397.7,392.2 L399.2,389.0 L401.9,387.1 L401.9,385.8 L407.0,383.8 L410.0,380.8 L416.0,378.8 L419.7,379.1 L423.0,377.4 L424.7,373.0 L428.9,367.7 L432.2,364.0 L435.1,362.2 L440.5,355.1 L444.0,352.8 L444.0,349.5 L444.9,347.4 L449.6,345.2 L451.5,342.6 L453.3,342.5 L456.7,345.0 L462.0,349.9 L466.2,355.5 L469.3,356.3 L471.1,355.9 L472.8,358.1 L473.2,361.7 L474.5,364.5 L477.2,367.5 L485.2,372.0 L484.3,377.3 L485.9,382.6 L488.9,378.9 L494.7,378.1 L496.3,374.2 L498.9,372.3 L508.2,370.4 L510.6,371.2 L513.4,370.4 L516.8,371.0 L520.2,369.6 L523.1,370.8 L523.9,373.9 L526.7,374.9 L528.4,372.0 L528.4,370.2 L530.4,369.8 L534.3,373.0 L535.6,377.5 L537.6,377.8 L541.8,380.6 L544.0,379.6 L546.7,374.6 L554.9,372.6 L555.4,369.6 L553.6,366.6 L553.2,364.1 L555.0,357.7 L570.1,345.0 L579.4,345.3 L583.8,346.6 L585.4,347.9 L587.6,347.8 L596.7,343.3 L598.1,341.0 L601.1,338.6 L602.4,335.6 L609.3,335.4 L616.3,339.4 L625.1,340.3 L626.5,341.6 L627.8,346.2 L625.1,349.5 L625.3,350.7 L633.6,353.7 L637.0,351.6 L637.8,349.4 L640.6,347.0 L646.3,344.9 L649.3,344.9 L650.1,343.9 L657.6,346.0 L670.0,343.3 L674.8,343.7 L677.8,338.3 L680.5,337.0 L684.4,336.8 L684.9,333.6 L687.8,331.1 L689.1,326.0 L692.1,319.1 L692.2,314.6 L693.6,311.4 L692.5,306.8 L692.6,303.7 L693.6,297.5 L696.9,291.2 L696.9,287.7 L699.8,289.8 L701.8,294.1 L701.6,295.4 L703.4,297.5 L707.5,298.5 L711.7,295.7 L718.0,297.1 L720.4,294.8 L723.5,294.6 L726.4,288.5 L725.7,285.4 L726.3,280.8 L727.3,277.1 L730.0,273.5 L729.5,262.8 L729.1,261.5 L723.8,258.9 L717.7,261.8 L708.2,256.1 L711.7,252.5 L714.0,248.3 L714.5,241.7 L713.4,237.4 L708.3,235.4 L703.4,235.0 L702.9,236.9 L700.4,239.5 L693.7,239.9 L692.0,241.6 L689.4,242.1 L686.0,237.5 L684.3,237.2 L681.9,230.0 L680.4,229.9 L678.0,231.9 L675.2,230.1 L673.6,227.1 L671.6,225.4 L668.9,229.4 L667.0,229.9 L665.2,226.4 L659.0,225.1 L657.3,226.3 L655.7,230.8 L648.6,231.3 L647.5,227.6 L645.9,228.3 L642.6,227.0 L640.7,224.2 L633.9,220.7 L633.1,219.3 L633.2,217.2 L636.3,211.4 L635.9,207.6 L639.6,203.8 L640.2,200.8 L638.0,198.0 L638.0,193.7 L641.8,190.7 L643.6,185.5 L638.7,179.2 L638.0,172.8 L636.4,170.5 L634.7,165.7 L639.8,140.7 L641.4,139.0 L639.0,130.2 L634.9,130.0 L631.6,128.4 L630.3,126.9 L625.3,125.5 L626.1,123.6 L625.7,120.8 L622.2,120.7 L619.7,117.5 L617.9,117.2 L615.2,115.0 L610.6,116.4 L608.1,113.9 L606.2,113.7 L603.6,116.8 L601.4,117.0 L599.9,116.1 L598.5,116.6 L597.1,119.2 L595.3,120.1 L594.3,119.9 L592.5,117.0 L587.5,115.7 L585.6,116.6 L582.9,115.5 L581.1,118.6 L578.6,118.2 L576.4,120.8 L572.1,118.5 L570.9,117.0 L565.0,118.4 L563.5,119.6 L563.6,122.4 L562.1,123.7 L561.7,126.9 L559.2,130.1 L554.1,127.0 L555.7,123.0 L552.9,119.7 L547.8,122.1 L542.8,120.3 L539.8,121.7 L533.9,122.1 L528.9,128.0 L523.8,128.9 L523.5,128.2 L529.4,122.6 L530.0,120.8 L529.2,114.5 L531.2,110.7 L530.9,107.7 L532.1,100.0 L531.4,93.1 L532.3,88.5 L531.3,83.9 L531.9,80.2 L529.9,76.5 L528.3,70.2 L529.1,65.4 L531.6,59.3 L531.4,54.7 L532.2,53.3 L531.1,51.1 L529.6,39.8 L523.3,44.6 L518.7,46.1 L514.2,50.4 L510.2,52.3 L504.4,58.2 L498.4,66.5 L492.2,71.3 L491.7,74.9 L489.1,76.5 L486.7,82.0 L488.6,90.7 L491.8,96.5 L492.1,100.4 L490.3,101.7 L489.8,104.8 L488.3,107.3 L481.6,113.2 L479.2,118.3 L475.3,123.3 L472.9,129.8 L467.2,137.9 L464.4,139.2 L463.0,142.9 L458.5,143.6 L456.9,145.7 L447.4,148.5 L447.0,143.9 L444.9,141.8 L444.9,138.4 L443.6,137.3 L444.0,134.6 L443.0,128.9 L441.4,128.5 L439.5,131.1 L436.2,132.5 L435.1,135.7 L434.2,136.1 L432.2,134.8 L430.9,129.2 L426.6,128.4 L424.0,129.7 L421.7,129.7 L419.7,134.5 L416.4,134.8 L412.9,131.5 L409.5,129.7 L407.5,127.2 L404.2,126.9 L406.4,120.5 L404.2,116.5 L400.2,116.5 L397.3,113.7 L395.8,113.7 L394.5,113.9 L393.4,116.4 L390.7,116.3 L389.3,117.3 L386.6,114.1 L380.9,112.0 L374.7,114.6 L372.7,107.8 L368.8,105.5 L368.0,102.0 L361.9,101.4 L357.3,104.3 L354.8,104.8 L350.4,103.3 L345.3,99.6 L343.8,95.0 L342.7,93.9 L337.5,92.5 L334.1,89.9 L330.2,90.0 L330.5,87.4 L332.7,83.5 L323.5,82.7 L316.6,80.1 L319.6,94.8 L316.5,92.6 L315.9,90.0 L311.0,88.7 L301.3,81.3 L295.0,78.3 L293.3,80.0 L291.6,86.9 L292.5,90.2 L289.4,93.5 L291.4,98.0 L285.4,106.2 L281.0,104.8 L277.9,102.2 L275.2,103.8 L273.5,103.7 Z" data-key="Pasco" tabindex="0" role="button" aria-label="Provincia de Pasco"></path></g>
+          <g id="selLayer"></g>
+          <g id="leaders"></g>
+          <g id="labels"><text class="plabel" x="136.4" y="175.4" style="font-size:11.1px;--sw:0.9px" data-label="Daniel-Alcides-Carrion">Daniel Alcides Carrión</text>
+<text class="plabel" x="513.6" y="246.9" style="font-size:14.2px;--sw:1.1px" data-label="Pasco">Pasco</text></g>
+        </g>
+      </svg>
+      <div class="tooltip" id="tip" hidden></div>
+      </div>
+      <div class="legend" id="legend">
+        <div class="t" id="legendTitle">Provincias</div>
+        <div class="items" id="legendItems"></div>
+        <div class="bar" id="legendBar"></div>
+        <div class="r"><span id="legendMin"></span><span id="legendMax"></span></div>
+      </div>
+    </section>
+
+    <div class="side">
+    <aside class="card panel">
+      <div class="panel-top">
+        <div>
+          <h3 id="pTitle">Distrito Judicial de Pasco</h3>
+          <div class="sub" id="pSub">Selecciona una provincia en el mapa o en la tabla</div>
+        </div>
+        <span class="chip" id="pChip">2 provincias</span>
+      </div>
+      <div class="stat-grid" id="pStats"></div>
+      <div class="sec">Dependencias por provincia</div>
+      <div class="bars" id="pBars"></div>
+      <div class="note" id="pNote"></div>
+      <div class="sec">Órganos jurisdiccionales del distrito</div>
+      <div class="organs">
+        <div class="organ">
+          <span class="n">2</span><span class="lbl">Salas superiores</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">11</span><span class="lbl">Juzgados especializados o mixtos</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">6</span><span class="lbl">Juzgados de paz letrado</span>
+          <span class="d">Permanentes 17 · Transitorias 2 · Total 19</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="display">Provincia</th>
+            <th data-sort="capital">Capital</th>
+            <th data-sort="pop">Población</th>
+            <th data-sort="area">Superficie (km²)</th>
+            <th data-sort="dens">Densidad</th>
+            <th data-sort="dep">Dependencias</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td><td>2 provincias</td><td>156,913</td><td>7,261</td>
+            <td>21.61</td><td>19</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    Fuente de los datos: «DEPENDENCIAS JUN 2026 Documento_v2» · Distrito Judicial de Pasco (2 provincias, 19 dependencias, población 156,913 hab., superficie 7,261 km²).<br>
+    Geometría: geoBoundaries (PER ADM2, versión simplificada, CC BY 4.0).
+    Documento HTML autónomo, sin conexión a internet.
+  </footer>
+</div>
+
+<script>
+const PROVS = [{"key":"Daniel Alcides Carrion","display":"Daniel Alcides Carrión","capital":"Yanahuanca","pop":43259,"area":1887,"dens":22.92,"dep":3,"perm":2,"trans":1,"dark":false,"color":"#8b8f93","fs":11.1,"sw":0.9,"path":"M165.6,44.3 L171.0,50.9 L171.5,53.6 L177.7,60.2 L175.8,62.7 L175.9,65.8 L173.2,65.7 L169.8,68.8 L171.0,72.4 L170.3,74.0 L170.4,76.2 L166.5,79.6 L167.3,84.2 L164.4,85.1 L161.7,84.5 L156.5,86.1 L152.5,85.8 L148.5,83.3 L146.0,87.7 L143.8,88.9 L142.4,89.3 L139.9,88.3 L138.1,89.1 L132.4,87.6 L128.7,92.7 L121.6,86.1 L119.0,82.4 L116.7,82.5 L113.3,88.3 L110.7,87.6 L108.5,89.1 L108.0,93.4 L108.6,97.4 L101.1,98.9 L93.0,105.5 L89.1,105.1 L86.5,106.1 L81.9,105.1 L76.6,105.8 L75.3,108.0 L71.0,109.0 L69.6,111.3 L69.6,113.1 L68.0,114.7 L69.0,117.8 L67.3,119.1 L64.0,120.1 L61.2,118.7 L58.8,118.6 L56.5,120.4 L49.2,121.4 L48.2,122.6 L47.9,125.9 L48.8,129.1 L47.3,130.4 L46.9,132.2 L38.4,133.1 L33.8,139.0 L32.8,141.9 L30.6,142.8 L33.0,146.6 L31.2,148.2 L31.0,155.0 L30.0,159.9 L34.7,165.9 L37.7,168.4 L38.3,173.3 L40.2,177.6 L41.5,178.8 L42.0,189.3 L43.0,191.5 L44.5,192.3 L45.2,195.9 L45.9,203.4 L45.2,206.7 L55.5,202.6 L55.7,206.4 L58.7,208.2 L57.8,212.6 L61.5,214.5 L63.0,219.2 L62.7,223.5 L61.4,225.9 L66.2,229.8 L69.5,234.0 L72.8,240.7 L77.9,239.2 L80.4,240.5 L83.9,240.8 L86.0,242.1 L86.8,244.3 L91.0,247.3 L95.8,254.3 L100.7,253.7 L101.1,256.5 L103.2,256.4 L108.0,258.3 L111.8,261.5 L115.1,269.1 L120.0,272.9 L120.2,277.0 L132.6,276.4 L135.8,274.7 L138.5,275.6 L140.0,274.3 L141.9,277.3 L144.0,278.5 L143.7,282.1 L145.6,286.8 L149.1,287.6 L148.9,291.3 L150.4,293.8 L153.7,297.5 L158.2,299.0 L161.0,286.3 L164.8,278.1 L169.0,275.3 L172.1,271.7 L174.4,270.9 L176.2,268.5 L175.9,264.2 L178.9,262.5 L179.8,261.0 L179.3,259.0 L180.1,257.5 L178.7,254.1 L179.1,252.6 L181.7,247.6 L187.2,241.1 L192.0,241.4 L201.3,245.2 L208.3,244.4 L215.2,238.9 L218.4,237.5 L219.6,235.2 L224.4,231.2 L235.0,225.1 L241.0,229.3 L243.0,222.9 L248.1,219.8 L249.7,216.3 L250.6,210.9 L257.1,207.6 L262.2,208.5 L267.1,207.9 L271.8,205.8 L274.1,207.8 L274.6,212.5 L278.0,214.9 L280.8,214.3 L286.3,206.8 L286.4,203.2 L292.2,201.0 L293.4,190.3 L296.1,188.4 L297.7,188.3 L303.0,182.1 L305.4,182.5 L310.1,180.1 L312.3,177.4 L312.5,172.2 L313.7,168.8 L312.8,164.3 L309.6,161.0 L307.1,160.3 L305.7,160.8 L303.5,154.1 L305.5,151.0 L305.8,147.3 L308.1,145.3 L308.4,143.8 L302.2,139.6 L301.4,138.0 L300.4,137.9 L299.2,134.2 L295.8,130.1 L293.8,129.4 L290.8,130.0 L286.5,127.1 L286.1,125.4 L287.1,123.0 L279.8,115.9 L275.3,108.9 L273.5,103.7 L271.6,99.9 L272.0,95.6 L269.6,89.3 L269.7,86.9 L265.6,80.1 L265.6,75.0 L263.5,73.0 L263.8,70.2 L265.9,67.9 L265.1,65.6 L266.6,65.1 L267.2,61.7 L264.3,53.0 L261.2,48.9 L259.3,47.6 L259.2,46.2 L262.1,41.4 L257.9,35.5 L256.4,30.2 L252.2,30.0 L249.1,34.2 L246.5,36.2 L239.9,37.9 L236.8,36.2 L236.3,34.9 L231.2,33.9 L226.9,31.9 L219.1,43.1 L216.6,43.3 L205.2,49.4 L200.0,49.0 L192.7,50.3 L191.3,47.6 L185.6,47.8 L177.9,43.9 L171.8,45.5 L165.6,44.3 Z","lx":136.4,"ly":175.4},{"key":"Pasco","display":"Pasco","capital":"Cerro de Pasco","pop":113654,"area":5374,"dens":21.15,"dep":16,"perm":15,"trans":1,"dark":false,"color":"#8e2b23","fs":14.2,"sw":1.1,"path":"M273.5,103.7 L275.3,108.9 L279.8,115.9 L287.1,123.0 L286.1,125.4 L286.5,127.1 L290.8,130.0 L293.8,129.4 L295.8,130.1 L299.2,134.2 L300.4,137.9 L301.4,138.0 L302.2,139.6 L308.4,143.8 L308.1,145.3 L305.8,147.3 L305.5,151.0 L303.5,154.1 L305.7,160.8 L307.1,160.3 L309.6,161.0 L312.8,164.3 L313.7,168.8 L312.5,172.2 L312.3,177.4 L310.1,180.1 L305.4,182.5 L303.0,182.1 L297.7,188.3 L296.1,188.4 L293.4,190.3 L292.2,201.0 L286.4,203.2 L286.3,206.8 L280.8,214.3 L278.0,214.9 L274.6,212.5 L274.1,207.8 L271.8,205.8 L267.1,207.9 L262.2,208.5 L257.1,207.6 L250.6,210.9 L249.7,216.3 L248.1,219.8 L243.0,222.9 L241.0,229.3 L235.0,225.1 L224.4,231.2 L219.6,235.2 L218.4,237.5 L215.2,238.9 L208.3,244.4 L201.3,245.2 L192.0,241.4 L187.2,241.1 L181.7,247.6 L179.1,252.6 L178.7,254.1 L180.1,257.5 L179.3,259.0 L179.8,261.0 L178.9,262.5 L175.9,264.2 L176.2,268.5 L174.4,270.9 L172.1,271.7 L169.0,275.3 L164.8,278.1 L161.0,286.3 L158.2,299.0 L153.7,297.5 L150.4,293.8 L148.9,291.3 L149.1,287.6 L145.6,286.8 L143.7,282.1 L144.0,278.5 L141.9,277.3 L140.0,274.3 L138.5,275.6 L135.8,274.7 L132.6,276.4 L120.2,277.0 L120.0,272.9 L115.1,269.1 L111.8,261.5 L108.0,258.3 L103.2,256.4 L101.1,256.5 L100.7,253.7 L95.8,254.3 L91.0,247.3 L86.8,244.3 L86.0,242.1 L83.9,240.8 L80.4,240.5 L77.9,239.2 L72.8,240.7 L72.9,243.1 L70.7,245.5 L70.0,250.4 L67.2,255.5 L64.3,257.1 L64.2,259.4 L70.6,264.7 L70.3,266.9 L71.7,272.4 L74.1,276.3 L73.5,279.4 L76.8,284.3 L76.1,287.2 L78.9,294.4 L80.7,296.5 L80.5,298.9 L85.1,302.5 L88.8,310.3 L89.3,313.1 L87.3,315.8 L88.0,317.6 L87.6,319.5 L85.5,320.8 L90.1,325.5 L90.1,327.4 L89.1,328.5 L89.5,330.0 L91.4,331.6 L93.1,337.0 L96.0,340.0 L101.4,338.6 L103.8,339.5 L104.2,342.0 L105.9,342.6 L108.8,349.3 L110.9,351.6 L111.5,356.5 L112.7,360.5 L114.0,361.5 L114.0,366.2 L115.9,369.3 L115.6,375.3 L117.0,389.8 L118.9,392.2 L118.7,396.6 L121.0,399.0 L122.9,409.0 L121.7,411.1 L122.7,413.2 L122.6,418.9 L124.8,426.0 L124.8,427.3 L119.8,432.6 L119.5,435.2 L116.7,436.2 L115.3,438.3 L115.4,440.2 L117.4,443.5 L116.1,449.0 L116.1,453.4 L118.0,456.7 L120.0,456.5 L122.4,454.9 L124.6,457.7 L125.4,460.4 L127.4,459.7 L129.8,460.4 L134.9,463.9 L143.2,467.0 L145.9,472.2 L146.9,477.1 L150.1,480.7 L153.7,487.2 L163.5,497.3 L167.2,499.3 L172.7,497.3 L175.0,495.6 L177.9,496.4 L184.4,496.2 L186.1,492.9 L189.7,493.6 L192.7,488.6 L200.2,493.8 L201.2,493.7 L202.3,491.7 L204.7,491.2 L207.5,492.1 L221.1,491.3 L223.4,488.4 L225.6,488.5 L229.1,490.3 L229.0,493.9 L242.9,498.2 L247.7,502.0 L250.2,500.8 L253.2,496.5 L256.5,495.2 L266.5,500.6 L265.6,503.5 L266.7,511.5 L272.4,524.5 L280.5,525.1 L283.5,527.5 L288.3,527.7 L301.2,535.7 L304.4,534.9 L308.7,530.5 L310.5,530.6 L312.1,533.1 L315.5,534.9 L318.6,538.0 L323.1,534.9 L325.9,534.8 L323.6,530.8 L323.5,528.2 L320.4,526.4 L319.6,522.5 L317.4,522.1 L316.3,518.9 L312.2,514.4 L308.8,513.8 L305.5,508.5 L304.9,502.7 L305.5,499.1 L306.7,497.6 L306.5,495.4 L308.1,494.2 L309.0,491.8 L308.4,488.2 L310.7,482.7 L310.2,479.9 L311.6,478.7 L310.3,477.4 L311.6,475.8 L311.1,474.2 L309.4,474.5 L308.4,473.8 L309.5,472.4 L309.4,471.2 L305.0,470.4 L304.4,467.6 L305.0,465.8 L301.8,464.9 L300.1,463.0 L300.4,461.8 L303.6,460.4 L299.9,455.8 L300.0,454.7 L302.0,453.4 L300.0,450.2 L302.4,448.4 L301.2,446.7 L299.1,447.2 L297.7,446.2 L298.3,444.2 L296.2,442.6 L296.7,440.3 L295.8,437.6 L296.5,435.4 L294.5,435.0 L295.1,433.5 L292.4,430.1 L293.3,428.9 L293.1,427.3 L293.9,427.9 L295.5,427.3 L294.2,424.7 L296.6,424.1 L296.7,423.1 L294.6,420.9 L292.5,421.6 L293.3,419.5 L292.7,418.2 L290.3,418.2 L289.4,413.4 L290.6,407.8 L289.2,404.9 L289.0,402.3 L287.3,401.9 L288.9,400.5 L287.2,397.7 L287.4,396.7 L288.5,396.3 L289.9,398.4 L290.9,396.9 L294.1,398.3 L298.6,393.9 L299.4,394.4 L299.3,396.1 L297.5,397.0 L296.5,400.4 L300.4,400.3 L302.2,402.0 L303.2,401.6 L305.9,402.9 L314.7,399.2 L317.3,400.0 L317.6,397.7 L319.2,398.2 L320.7,397.4 L324.6,399.4 L328.7,399.7 L329.4,401.5 L329.1,403.6 L329.9,404.6 L329.5,405.8 L326.9,407.5 L329.8,409.7 L329.0,411.5 L329.7,413.8 L333.8,414.4 L334.8,415.4 L335.3,418.6 L337.5,419.4 L337.6,421.6 L339.3,422.0 L339.5,423.8 L341.5,424.2 L345.2,422.8 L347.5,420.7 L350.3,420.4 L350.7,419.1 L352.7,420.0 L353.0,418.9 L351.9,417.8 L352.8,416.4 L357.7,418.0 L363.3,417.1 L365.2,415.4 L366.4,415.6 L368.8,418.1 L371.3,415.7 L373.0,416.0 L372.9,417.4 L374.6,417.6 L376.0,419.0 L376.9,418.3 L378.8,419.2 L380.2,421.1 L379.4,423.2 L377.6,424.4 L378.5,425.2 L382.4,418.2 L386.0,415.9 L386.4,411.4 L389.0,409.4 L389.6,408.0 L392.3,406.3 L392.2,402.8 L395.0,399.5 L396.3,396.5 L396.6,392.5 L397.7,392.2 L399.2,389.0 L401.9,387.1 L401.9,385.8 L407.0,383.8 L410.0,380.8 L416.0,378.8 L419.7,379.1 L423.0,377.4 L424.7,373.0 L428.9,367.7 L432.2,364.0 L435.1,362.2 L440.5,355.1 L444.0,352.8 L444.0,349.5 L444.9,347.4 L449.6,345.2 L451.5,342.6 L453.3,342.5 L456.7,345.0 L462.0,349.9 L466.2,355.5 L469.3,356.3 L471.1,355.9 L472.8,358.1 L473.2,361.7 L474.5,364.5 L477.2,367.5 L485.2,372.0 L484.3,377.3 L485.9,382.6 L488.9,378.9 L494.7,378.1 L496.3,374.2 L498.9,372.3 L508.2,370.4 L510.6,371.2 L513.4,370.4 L516.8,371.0 L520.2,369.6 L523.1,370.8 L523.9,373.9 L526.7,374.9 L528.4,372.0 L528.4,370.2 L530.4,369.8 L534.3,373.0 L535.6,377.5 L537.6,377.8 L541.8,380.6 L544.0,379.6 L546.7,374.6 L554.9,372.6 L555.4,369.6 L553.6,366.6 L553.2,364.1 L555.0,357.7 L570.1,345.0 L579.4,345.3 L583.8,346.6 L585.4,347.9 L587.6,347.8 L596.7,343.3 L598.1,341.0 L601.1,338.6 L602.4,335.6 L609.3,335.4 L616.3,339.4 L625.1,340.3 L626.5,341.6 L627.8,346.2 L625.1,349.5 L625.3,350.7 L633.6,353.7 L637.0,351.6 L637.8,349.4 L640.6,347.0 L646.3,344.9 L649.3,344.9 L650.1,343.9 L657.6,346.0 L670.0,343.3 L674.8,343.7 L677.8,338.3 L680.5,337.0 L684.4,336.8 L684.9,333.6 L687.8,331.1 L689.1,326.0 L692.1,319.1 L692.2,314.6 L693.6,311.4 L692.5,306.8 L692.6,303.7 L693.6,297.5 L696.9,291.2 L696.9,287.7 L699.8,289.8 L701.8,294.1 L701.6,295.4 L703.4,297.5 L707.5,298.5 L711.7,295.7 L718.0,297.1 L720.4,294.8 L723.5,294.6 L726.4,288.5 L725.7,285.4 L726.3,280.8 L727.3,277.1 L730.0,273.5 L729.5,262.8 L729.1,261.5 L723.8,258.9 L717.7,261.8 L708.2,256.1 L711.7,252.5 L714.0,248.3 L714.5,241.7 L713.4,237.4 L708.3,235.4 L703.4,235.0 L702.9,236.9 L700.4,239.5 L693.7,239.9 L692.0,241.6 L689.4,242.1 L686.0,237.5 L684.3,237.2 L681.9,230.0 L680.4,229.9 L678.0,231.9 L675.2,230.1 L673.6,227.1 L671.6,225.4 L668.9,229.4 L667.0,229.9 L665.2,226.4 L659.0,225.1 L657.3,226.3 L655.7,230.8 L648.6,231.3 L647.5,227.6 L645.9,228.3 L642.6,227.0 L640.7,224.2 L633.9,220.7 L633.1,219.3 L633.2,217.2 L636.3,211.4 L635.9,207.6 L639.6,203.8 L640.2,200.8 L638.0,198.0 L638.0,193.7 L641.8,190.7 L643.6,185.5 L638.7,179.2 L638.0,172.8 L636.4,170.5 L634.7,165.7 L639.8,140.7 L641.4,139.0 L639.0,130.2 L634.9,130.0 L631.6,128.4 L630.3,126.9 L625.3,125.5 L626.1,123.6 L625.7,120.8 L622.2,120.7 L619.7,117.5 L617.9,117.2 L615.2,115.0 L610.6,116.4 L608.1,113.9 L606.2,113.7 L603.6,116.8 L601.4,117.0 L599.9,116.1 L598.5,116.6 L597.1,119.2 L595.3,120.1 L594.3,119.9 L592.5,117.0 L587.5,115.7 L585.6,116.6 L582.9,115.5 L581.1,118.6 L578.6,118.2 L576.4,120.8 L572.1,118.5 L570.9,117.0 L565.0,118.4 L563.5,119.6 L563.6,122.4 L562.1,123.7 L561.7,126.9 L559.2,130.1 L554.1,127.0 L555.7,123.0 L552.9,119.7 L547.8,122.1 L542.8,120.3 L539.8,121.7 L533.9,122.1 L528.9,128.0 L523.8,128.9 L523.5,128.2 L529.4,122.6 L530.0,120.8 L529.2,114.5 L531.2,110.7 L530.9,107.7 L532.1,100.0 L531.4,93.1 L532.3,88.5 L531.3,83.9 L531.9,80.2 L529.9,76.5 L528.3,70.2 L529.1,65.4 L531.6,59.3 L531.4,54.7 L532.2,53.3 L531.1,51.1 L529.6,39.8 L523.3,44.6 L518.7,46.1 L514.2,50.4 L510.2,52.3 L504.4,58.2 L498.4,66.5 L492.2,71.3 L491.7,74.9 L489.1,76.5 L486.7,82.0 L488.6,90.7 L491.8,96.5 L492.1,100.4 L490.3,101.7 L489.8,104.8 L488.3,107.3 L481.6,113.2 L479.2,118.3 L475.3,123.3 L472.9,129.8 L467.2,137.9 L464.4,139.2 L463.0,142.9 L458.5,143.6 L456.9,145.7 L447.4,148.5 L447.0,143.9 L444.9,141.8 L444.9,138.4 L443.6,137.3 L444.0,134.6 L443.0,128.9 L441.4,128.5 L439.5,131.1 L436.2,132.5 L435.1,135.7 L434.2,136.1 L432.2,134.8 L430.9,129.2 L426.6,128.4 L424.0,129.7 L421.7,129.7 L419.7,134.5 L416.4,134.8 L412.9,131.5 L409.5,129.7 L407.5,127.2 L404.2,126.9 L406.4,120.5 L404.2,116.5 L400.2,116.5 L397.3,113.7 L395.8,113.7 L394.5,113.9 L393.4,116.4 L390.7,116.3 L389.3,117.3 L386.6,114.1 L380.9,112.0 L374.7,114.6 L372.7,107.8 L368.8,105.5 L368.0,102.0 L361.9,101.4 L357.3,104.3 L354.8,104.8 L350.4,103.3 L345.3,99.6 L343.8,95.0 L342.7,93.9 L337.5,92.5 L334.1,89.9 L330.2,90.0 L330.5,87.4 L332.7,83.5 L323.5,82.7 L316.6,80.1 L319.6,94.8 L316.5,92.6 L315.9,90.0 L311.0,88.7 L301.3,81.3 L295.0,78.3 L293.3,80.0 L291.6,86.9 L292.5,90.2 L289.4,93.5 L291.4,98.0 L285.4,106.2 L281.0,104.8 L277.9,102.2 L275.2,103.8 L273.5,103.7 Z","lx":513.6,"ly":246.9}];
+const GEN = {"provincias": 2, "dependencias": 19, "poblacion": 156913, "superficie": 7261, "densidad": 21.61, "permanentes": 17, "transitorios": 2, "salas": 2, "salas_det": "", "juzgados": 11, "juz_det": "", "jpl": 6, "jpl_det": "Permanentes 17 · Transitorias 2 · Total 19", "nota": "El distrito judicial comprende las <b>2 provincias</b> de Pasco, con <b>19 dependencias</b>: 17 permanentes y 2 transitorias (una en cada provincia). Pasco concentra 16 dependencias.", "nombre": "Pasco", "sin_datos": false, "colsing": "Provincia", "colplural": "provincias", "colplural_cap": "Provincias", "colsing_cap": "Provincia", "sel_hint": "Selecciona una provincia en el mapa o en la tabla", "sub_generic": "Provincia del Pasco", "nota_prov": ""};
+const SIN = GEN.sin_datos === true;                       /* sin desagregado por unidad */
+const num = v => (v === null || v === undefined || (typeof v === "number" && isNaN(v)))
+  ? "—" : v.toLocaleString("es-PE");
+const uni = (v, u) => (v === null || v === undefined) ? "" : u;
+
+const byKey = {};
+PROVS.forEach(p => byKey[p.key] = p);
+
+const RAMP = ["#e9f1fa", "#b9d3ef", "#7faadb", "#4a7fc1", "#26558f", "#123a63"];
+const RAMP_CSS = "linear-gradient(90deg," + RAMP.join(",") + ")";
+
+const IND = {
+  pop:  {label: "Población", key: "pop", short: "hab.", fmt: v => v.toLocaleString("es-PE")},
+  area: {label: "Superficie", key: "area", short: "km²", fmt: v => v.toLocaleString("es-PE")},
+  dens: {label: "Densidad", key: "dens", short: "hab/km²", fmt: v => v.toLocaleString("es-PE", {maximumFractionDigits: 2})},
+  dep:  {label: "Dependencias", key: "dep", short: "dependencias", fmt: v => v.toLocaleString("es-PE")}
+};
+
+let mode = "cat";
+let indicator = "pop";
+let selected = null;
+
+const qs = id => document.getElementById(id);
+const svg = qs("map");
+const viewport = qs("viewport");
+const tip = qs("tip");
+
+/* ---------- utilidades ---------- */
+function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function lerpColor(a, b, t){
+  const ca = hex2rgb(a), cb = hex2rgb(b);
+  const c = ca.map((v, i) => Math.round(v + (cb[i] - v) * t));
+  return "rgb(" + c.join(",") + ")";
+}
+function rampColor(t){
+  t = Math.max(0, Math.min(1, t));
+  const n = RAMP.length - 1, p = t * n, i = Math.min(n - 1, Math.floor(p)), f = p - i;
+  return lerpColor(RAMP[i], RAMP[i+1], f);
+}
+function value(p){ return p[IND[indicator].key]; }
+function norm(p){
+  /* posicion relativa: reparte todo el degradado aunque un valor domine (p.ej. Huaraz) */
+  const vals = PROVS.map(value).slice().sort((a,b) => a - b);
+  const v = value(p);
+  let i = 0;
+  while (i < vals.length && vals[i] < v) i++;
+  return vals.length > 1 ? i / (vals.length - 1) : 0.5;
+}
+function fmt(p){ return IND[indicator].fmt(value(p)) + " " + IND[indicator].short; }
+
+/* ---------- pintado ---------- */
+function luma(css){
+  let r, g, b;
+  const m = css.match(/rgb\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)/);
+  if (m) { r = +m[1]; g = +m[2]; b = +m[3]; }
+  else {
+    const h = String(css).replace("#", "");
+    if (h.length < 6) return 200;
+    r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+  }
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function paint(){
+  const legend = qs("legend");
+  if (SIN) mode = "cat";
+  PROVS.forEach(p => {
+    const el = qs("p-" + p.key.replace(/ /g, "-"));
+    if (!el) return;
+    const fill = (mode === "cat") ? p.color : rampColor(0.06 + norm(p) * 0.94);
+    el.style.fill = fill;
+    const lab = document.querySelector('.plabel[data-label="' + p.key.replace(/ /g, "-") + '"]');
+    if (lab) lab.classList.toggle("dark", luma(fill) > 126);
+  });
+  if (mode === "cat") {
+    legend.classList.add("cat");
+    qs("legendTitle").textContent = GEN.colplural_cap;
+    qs("legendItems").innerHTML = PROVS.map(p =>
+      '<span><i style="background:' + p.color + '"></i>' + p.display + '</span>').join("");
+    qs("legendBar").style.background = "";
+    qs("legendMin").textContent = "";
+    qs("legendMax").textContent = "";
+  } else {
+    legend.classList.remove("cat");
+    const vals = PROVS.map(value);
+    qs("legendTitle").textContent = IND[indicator].label;
+    qs("legendBar").style.background = RAMP_CSS;
+    qs("legendMin").textContent = IND[indicator].fmt(Math.min.apply(null, vals));
+    qs("legendMax").textContent = IND[indicator].fmt(Math.max.apply(null, vals));
+  }
+}
+
+/* ---------- panel ---------- */
+function statCard(k, v, u){
+  return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v +
+    (u ? ' <small>' + u + '</small>' : '') + '</div></div>';
+}
+
+function showOverview(){
+  selected = null;
+  qs("selLayer").innerHTML = "";
+  qs("pTitle").textContent = "Distrito Judicial de " + GEN.nombre;
+  qs("pSub").textContent = GEN.sel_hint;
+  qs("pChip").textContent = GEN.provincias + " " + GEN.colplural;
+  qs("pStats").innerHTML =
+    statCard(GEN.colplural_cap, GEN.provincias, "") +
+    statCard("Dependencias", GEN.dependencias, "") +
+    statCard("Población", GEN.poblacion.toLocaleString("es-PE"), "hab.") +
+    statCard("Superficie", GEN.superficie.toLocaleString("es-PE"), "km²") +
+    statCard("Densidad", GEN.densidad.toLocaleString("es-PE", {maximumFractionDigits: 2}), "hab/km²") +
+    statCard("Permanentes", GEN.permanentes, "de " + GEN.dependencias);
+  if (!SIN) renderBars(null);
+  qs("pNote").innerHTML = GEN.nota;
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.remove("sel"));
+}
+
+function showProvince(key){
+  const p = byKey[key];
+  if (!p) return;
+  selected = key;
+  qs("selLayer").innerHTML = '<path d="' + p.path + '"></path>';
+  qs("pTitle").textContent = p.display;
+  qs("pSub").textContent = p.capital ? (GEN.colsing + " · capital " + p.capital)
+                                     : GEN.sub_generic;
+  qs("pChip").textContent = SIN ? GEN.colsing : (num(p.dep) + " dependencias");
+  qs("pStats").innerHTML =
+    statCard("Población", num(p.pop), uni(p.pop, "hab.")) +
+    statCard("Superficie", num(p.area), uni(p.area, "km²")) +
+    statCard("Densidad", num(p.dens), uni(p.dens, "hab/km²")) +
+    statCard("Dependencias", num(p.dep), uni(p.dep, "total")) +
+    statCard("Permanentes", num(p.perm), "") +
+    statCard("Transitorias", num(p.trans), "");
+  if (!SIN) renderBars(key);
+  qs("pNote").innerHTML = SIN ? GEN.nota_prov :
+    ("Participación en el distrito: <b>" + (p.dep / GEN.dependencias * 100).toFixed(1) + "%</b> de las dependencias y <b>" +
+     (p.pop / GEN.poblacion * 100).toFixed(1) + "%</b> de la población. " +
+     "Densidad: <b>" + p.dens.toLocaleString("es-PE", {maximumFractionDigits: 2}) + " hab/km²</b>");
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.toggle("sel", tr.dataset.key === key));
+}
+
+function renderBars(activeKey){
+  if (!qs("pBars")) return;
+  const max = Math.max.apply(null, PROVS.map(p => p.dep));
+  qs("pBars").innerHTML = PROVS.slice().sort((a,b) => b.dep - a.dep).map(p =>
+    '<div class="barrow"><span class="nm"' + (p.key === activeKey ? ' style="color:#8e2b23;font-weight:650"' : '') + '>' +
+    p.display + '</span><span class="tr"><i style="width:' + (p.dep / max * 100) + '%' +
+    (p.key === activeKey ? ';background:linear-gradient(90deg,#12202f,#3d5165)' : '') + '"></i></span>' +
+    '<span class="vl">' + p.dep + '</span></div>').join("");
+}
+
+function select(key){ showProvince(key); }
+
+/* ---------- tabla ---------- */
+let sortKey = "pop", sortDir = -1;
+function renderTable(){
+  const rows = PROVS.slice().sort((a,b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    if (typeof va === "string" || typeof vb === "string")
+      return String(va).localeCompare(String(vb)) * sortDir;
+    return ((va === null || va === undefined ? -1 : va) -
+            (vb === null || vb === undefined ? -1 : vb)) * sortDir;
+  });
+  qs("tbody").innerHTML = rows.map(p =>
+    '<tr data-key="' + p.key + '"><td>' + p.display + '</td><td>' +
+    (p.capital ? p.capital : "—") + '</td>' +
+    '<td>' + num(p.pop) + '</td>' +
+    '<td>' + num(p.area) + '</td>' +
+    '<td>' + num(p.dens) + '</td>' +
+    '<td>' + num(p.dep) + '</td></tr>').join("");
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    tr.onclick = () => select(tr.dataset.key);
+    tr.onmouseenter = () => hover(tr.dataset.key, true);
+    tr.onmouseleave = () => hover(tr.dataset.key, false);
+    if (tr.dataset.key === selected) tr.classList.add("sel");
+  });
+}
+document.querySelectorAll("th[data-sort]").forEach(th => {
+  th.onclick = () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = (k === "display" || k === "capital") ? 1 : -1; }
+    renderTable();
+  };
+});
+
+/* ---------- hover ---------- */
+function hover(key, on){
+  const p = byKey[key];
+  const lab = document.querySelector('.plabel[data-label="' + key.replace(/ /g, "-") + '"]');
+  if (lab) lab.style.opacity = on ? 0.75 : 1;
+  if (!on) { tip.hidden = true; return; }
+  if (!p) return;
+  tip.hidden = false;
+  tip.innerHTML = '<b>' + p.display + '</b><span>' +
+    (p.capital ? p.capital + ' · ' : '') +
+    (p.pop === null || p.pop === undefined ? 'sin desagregado en el documento'
+      : p.pop.toLocaleString("es-PE") + ' hab. · ' + p.dep + ' dep.') + '</span>';
+}
+
+qs("provs").addEventListener("mousemove", ev => {
+  const t = ev.target;
+  if (!t.classList || !t.classList.contains("prov")) return;
+  hover(t.dataset.key, true);
+  const rect = svg.getBoundingClientRect();
+  tip.style.left = (ev.clientX - rect.left) + "px";
+  tip.style.top = (ev.clientY - rect.top) + "px";
+});
+qs("provs").addEventListener("mouseleave", () => { tip.hidden = true; });
+
+PROVS.forEach(p => {
+  const el = qs("p-" + p.key.replace(/ /g, "-"));
+  if (!el) return;
+  el.addEventListener("click", () => select(p.key));
+  el.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(p.key); }
+  });
+});
+
+/* ---------- modos ---------- */
+qs("mCat").onclick = () => {
+  mode = "cat";
+  qs("mCat").classList.add("on");
+  qs("mVar").classList.remove("on");
+  qs("indicator").disabled = true;
+  qs("indicator").classList.remove("on");
+  paint();
+};
+if (qs("mVar")) qs("mVar").onclick = () => {
+  mode = "var";
+  qs("mVar").classList.add("on");
+  qs("mCat").classList.remove("on");
+  qs("indicator").disabled = false;
+  qs("indicator").classList.add("on");
+  paint();
+};
+if (qs("indicator")) qs("indicator").onchange = ev => { indicator = ev.target.value; paint(); };
+
+/* ---------- zoom ---------- */
+let zoom = {k: 1, x: 0, y: 0};
+const VB = {w: 760, h: 568.0};
+function applyZoom(){
+  viewport.setAttribute("transform", "translate(" + zoom.x + "," + zoom.y + ") scale(" + zoom.k + ")");
+}
+function clamp(){
+  zoom.k = Math.max(1, Math.min(8, zoom.k));
+  const w = VB.w * zoom.k, h = VB.h * zoom.k;
+  zoom.x = Math.min(0, Math.max(VB.w - w, zoom.x));
+  zoom.y = Math.min(0, Math.max(VB.h - h, zoom.y));
+  if (zoom.k === 1) { zoom.x = 0; zoom.y = 0; }
+}
+function zoomAt(cx, cy, f){
+  const k2 = Math.max(1, Math.min(8, zoom.k * f));
+  const g = k2 / zoom.k;
+  zoom.x = cx - (cx - zoom.x) * g;
+  zoom.y = cy - (cy - zoom.y) * g;
+  zoom.k = k2;
+  clamp(); applyZoom();
+}
+function toSvg(ev){
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  const ox = (r.width - VB.w * sc) / 2, oy = (r.height - VB.h * sc) / 2;
+  return {x: (ev.clientX - r.left - ox) / sc, y: (ev.clientY - r.top - oy) / sc};
+}
+svg.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const p = toSvg(ev);
+  zoomAt(p.x, p.y, ev.deltaY < 0 ? 1.16 : 1 / 1.16);
+}, {passive: false});
+
+let drag = null;
+svg.addEventListener("pointerdown", ev => {
+  if (ev.button !== 0) return;
+  drag = {x: ev.clientX, y: ev.clientY, zx: zoom.x, zy: zoom.y};
+  svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  zoom.x = drag.zx + (ev.clientX - drag.x) / sc;
+  zoom.y = drag.zy + (ev.clientY - drag.y) / sc;
+  clamp(); applyZoom(); svg.classList.add("dragging");
+});
+function endDrag(ev){
+  if (!drag) return;
+  if (svg.hasPointerCapture(ev.pointerId)) svg.releasePointerCapture(ev.pointerId);
+  drag = null; svg.classList.remove("dragging");
+}
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+qs("zin").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1.35);
+qs("zout").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1 / 1.35);
+qs("zreset").onclick = () => { zoom = {k: 1, x: 0, y: 0}; applyZoom(); showOverview(); };
+
+/* ---------- inicio ---------- */
+paint();
+renderTable();
+showOverview();
+applyZoom();
+</script>
+<script>try{parent.postMessage({tipo:'mapa-dj-ok'},'*');}catch(e){}</script>
+</body>
+</html>

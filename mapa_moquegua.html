@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distrito Judicial de Moquegua · Mapa de provincias y dependencias</title>
+<style>
+  :root{
+    --ink:#12202f; --ink2:#3d5165; --muted:#6b7c8d; --line:#dfe6ee;
+    --bg:#eef2f7; --card:#ffffff; --red:#8e2b23; --red2:#c0392b; --gold:#b98a2f;
+    --blue:#1f4e79;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(900px 500px at 8% -10%, #e3ecf7 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #f6ecea 0%, transparent 55%),
+      var(--bg);
+    min-height:100vh; padding:22px;
+  }
+  .app{max-width:1500px;margin:0 auto}
+
+  /* ---------- cabecera ---------- */
+  .hero{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+  .hero .titles{min-width:280px}
+  .eyebrow{font-size:.66rem;letter-spacing:2.2px;text-transform:uppercase;color:var(--red);
+    font-weight:700;margin-bottom:7px}
+  .hero h1{font-size:1.72rem;line-height:1.12;letter-spacing:-.2px;font-weight:700}
+  .hero h1 span{color:var(--red)}
+  .hero p{font-size:.8rem;color:var(--muted);margin-top:6px}
+  .kpis{margin-left:auto;display:grid;grid-template-columns:repeat(5,minmax(96px,1fr));gap:9px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 13px;
+    box-shadow:0 8px 22px rgba(24,50,80,.06)}
+  .kpi .k{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .kpi .v{font-size:1.16rem;font-weight:700;margin-top:3px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .kpi .v small{font-size:.6rem;font-weight:600;color:var(--muted);margin-left:2px}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:minmax(320px, 706px) minmax(0,1fr);gap:16px;align-items:start}
+  main.wide{grid-template-columns:minmax(0,1fr)}
+  main.wide .side{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);
+    gap:16px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 14px 34px rgba(24,50,80,.08);overflow:hidden}
+  .map-card{display:flex;flex-direction:column;position:relative}
+  .card-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap}
+  .card-head h2{font-size:.86rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink2)}
+  .modes{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .modes button,.modes select{font:inherit;font-size:.72rem;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);padding:6px 10px;border-radius:9px;cursor:pointer;transition:.15s}
+  .modes button:hover{border-color:#c3d2e2;background:#fff}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .modes select{display:none}
+  .modes select.on{display:block}
+  .modes select:disabled{opacity:.45}
+
+  .map-wrap{position:relative;flex:1;display:flex;min-height:0}
+  svg#map{display:block;width:100%;height:100%;min-height:600px;max-height:76vh;
+    touch-action:none;cursor:grab;user-select:none;padding:8px 0}
+  svg#map.dragging{cursor:grabbing}
+  .prov{stroke:#ffffff;stroke-width:2.6;stroke-linejoin:round;cursor:pointer;outline:none;
+    transition:filter .18s, stroke .18s, opacity .2s}
+  .prov:hover{stroke:#12202f;stroke-width:2.6;filter:drop-shadow(0 6px 14px rgba(20,40,70,.35))}
+  .prov:focus-visible{stroke:#12202f;stroke-width:3}
+  .prov.dim{opacity:.35}
+  #selLayer path{fill:none;stroke:#12202f;stroke-width:7;stroke-linejoin:round;pointer-events:none}
+  #selLayer path{filter:drop-shadow(0 3px 8px rgba(10,25,45,.45))}
+  .plabel{font-size:18px;font-weight:700;text-anchor:middle;pointer-events:none;
+    fill:#ffffff;stroke:rgba(10,20,30,.6);stroke-width:var(--sw,1.4px);paint-order:stroke}
+  .plabel.dark{fill:#16222f;stroke:rgba(255,255,255,.9);
+    stroke-width:calc(var(--sw,1.4px) * .45)}
+  .pleader{stroke:#aebbca;stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+  .map-tools{display:flex;gap:6px;margin-left:6px}
+  .map-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);font-size:.95rem;cursor:pointer;
+    display:grid;place-items:center;transition:.15s}
+  .map-tools button:hover{background:#fff;border-color:#c3d2e2}
+  .legend{border-top:1px solid var(--line);padding:10px 16px;background:#fbfcfe;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .legend .t{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .legend .bar{height:8px;border-radius:5px;flex:1;min-width:120px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .legend .r{display:flex;justify-content:space-between;font-size:.64rem;color:var(--ink2);
+    gap:10px;white-space:nowrap}
+  .legend.cat .bar,.legend.cat .r{display:none}
+  .legend .items{display:none;flex-wrap:wrap;gap:4px 14px;font-size:.64rem;color:var(--ink2)}
+  .legend.cat .items{display:flex}
+  .legend .items i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;
+    vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+  .tooltip{position:absolute;z-index:9;pointer-events:none;background:#12202f;color:#fff;
+    border-radius:9px;padding:7px 10px;transform:translate(-50%,-120%);font-size:.74rem;
+    box-shadow:0 10px 24px rgba(10,25,45,.4);white-space:nowrap}
+  .tooltip b{display:block;font-size:.78rem;margin-bottom:1px}
+  .tooltip span{color:#b9cbe0;font-size:.68rem}
+
+  /* ---------- panel ---------- */
+  .panel{padding:16px;display:flex;flex-direction:column;gap:13px}
+  .panel-top{display:flex;align-items:flex-start;gap:10px}
+  .panel-top h3{font-size:1.3rem;letter-spacing:-.2px;line-height:1.1}
+  .panel-top .sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+  .chip{margin-left:auto;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;
+    padding:5px 9px;border-radius:20px;background:#f1f5fa;color:var(--ink2);border:1px solid var(--line);
+    white-space:nowrap}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .stat .k{font-size:.57rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .stat .v{font-size:1rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:.62rem;font-weight:600;color:var(--muted);margin-left:2px}
+  .sec{font-size:.6rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:8px}
+  .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .bars{display:flex;flex-direction:column;gap:7px}
+  .barrow{display:grid;grid-template-columns:132px 1fr 34px;gap:8px;align-items:center;font-size:.72rem}
+  .barrow .nm{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barrow .tr{height:8px;background:#eef2f7;border-radius:5px;overflow:hidden}
+  .barrow .tr i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#c0392b,#8e2b23)}
+  .barrow .vl{text-align:right;color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  .note{font-size:.68rem;line-height:1.55;color:var(--muted)}
+  .note b{color:var(--ink2)}
+
+  /* ---------- organos ---------- */
+  .organs{display:flex;flex-direction:column;gap:8px}
+  .organ{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;
+    gap:0 12px;background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .organ .n{grid-row:span 2;font-size:1.5rem;font-weight:700;letter-spacing:-.6px;color:var(--red);
+    line-height:1.1;align-self:center;text-align:center}
+  .organ .lbl{font-size:.62rem;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+  .organ .d{font-size:.72rem;color:var(--ink2);margin-top:2px}
+
+  .table-card{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:.76rem;min-width:720px}
+  thead th{font-size:.6rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);
+    text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);background:#f7f9fc;
+    white-space:nowrap;cursor:pointer;user-select:none}
+  thead th:first-child,thead th:nth-child(2){text-align:left}
+  thead th:hover{color:var(--ink)}
+  tbody td{padding:9px 14px;border-bottom:1px solid #eef2f7;text-align:right;
+    font-variant-numeric:tabular-nums;color:var(--ink2)}
+  tbody td:first-child{text-align:left;font-weight:650;color:var(--ink)}
+  tbody td:nth-child(2){text-align:left;color:var(--muted)}
+  tbody tr{cursor:pointer;transition:.12s}
+  tbody tr:hover{background:#f7fafd}
+  tbody tr.sel{background:#fdf3f1}
+  tbody tr.sel td:first-child{color:var(--red)}
+  tfoot td{padding:10px 14px;font-weight:700;border-top:1px solid var(--line);text-align:right;
+    background:#f7f9fc;font-variant-numeric:tabular-nums}
+  tfoot td:first-child{text-align:left}
+  tfoot td:nth-child(2){text-align:left;color:var(--muted);font-weight:600}
+
+  footer{margin-top:16px;font-size:.66rem;color:var(--muted);text-align:center;line-height:1.8}
+
+  @media (max-width:1040px){
+    main{grid-template-columns:1fr}
+    .kpis{margin-left:0;width:100%;grid-template-columns:repeat(3,1fr)}
+    .organs{grid-template-columns:1fr}
+    svg#map{max-height:66vh}
+  }
+  @media (max-width:560px){
+    body{padding:12px}
+    .hero h1{font-size:1.3rem}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .panel{padding:13px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <div class="titles">
+      <div class="eyebrow">Poder Judicial del Perú · Dependencias JUN 2026</div>
+      <h1>Distrito Judicial de <span>Moquegua</span></h1>
+      <p>Las tres provincias del ámbito judicial y sus dependencias</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Provincias</div><div class="v">3</div></div>
+      <div class="kpi"><div class="k">Dependencias</div><div class="v">31</div></div>
+      <div class="kpi"><div class="k">Población</div><div class="v">204,742</div></div>
+      <div class="kpi"><div class="k">Superficie</div><div class="v">15,735 <small>km²</small></div></div>
+      <div class="kpi"><div class="k">Densidad</div><div class="v">13.01 <small>hab/km²</small></div></div>
+    </div>
+  </header>
+
+  <main class="">
+    <section class="card map-card">
+      <div class="card-head">
+        <h2>Provincias del distrito judicial</h2>
+        <div class="modes">
+          <button id="mCat" class="on">Colores del mapa</button>
+          <button id="mVar">Ver por indicador</button>
+          <select id="indicator" disabled>
+            <option value="pop">Población</option>
+            <option value="area">Superficie</option>
+            <option value="dens">Densidad</option>
+            <option value="dep">Dependencias</option>
+          </select>
+        </div>
+        <div class="map-tools">
+          <button id="zin" title="Acercar" aria-label="Acercar">+</button>
+          <button id="zout" title="Alejar" aria-label="Alejar">−</button>
+          <button id="zreset" title="Vista completa" aria-label="Vista completa">⤢</button>
+        </div>
+      </div>
+      <div class="map-wrap">
+      <svg id="map" viewBox="0 0 760 962.7" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="Mapa de provincias del Distrito Judicial de Moquegua">
+        <defs>
+          <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0d2135" flood-opacity=".35"/>
+          </filter>
+        </defs>
+        <g id="viewport">
+          <g id="provs"><path class="prov" id="p-General-Sanchez-Cerro" d="M60.4,404.4 L58.3,412.0 L59.2,416.6 L59.0,419.8 L57.0,423.4 L57.3,425.9 L55.5,429.6 L55.2,431.5 L53.0,433.3 L51.8,435.3 L51.6,440.8 L52.6,447.0 L54.2,448.1 L55.9,450.7 L53.7,452.4 L52.8,454.3 L53.4,464.7 L57.0,474.6 L62.0,480.2 L60.6,485.1 L61.1,490.9 L60.5,492.5 L57.9,494.9 L53.3,495.6 L53.2,497.8 L50.0,497.7 L46.3,498.7 L44.2,500.6 L44.2,503.7 L41.6,506.7 L42.9,510.2 L44.9,511.8 L49.0,511.3 L51.6,509.5 L54.3,510.0 L57.1,511.6 L62.6,508.7 L65.7,509.2 L67.8,508.5 L69.3,509.1 L71.6,511.6 L71.6,515.7 L75.5,518.4 L76.8,520.1 L76.7,521.3 L83.0,518.2 L85.4,518.5 L89.0,520.3 L93.5,519.9 L98.3,514.3 L98.2,512.5 L95.9,509.1 L96.2,506.0 L100.2,503.7 L103.8,503.2 L107.5,505.9 L110.4,505.5 L113.3,506.8 L117.6,510.4 L119.6,509.0 L122.3,505.5 L124.4,505.1 L125.9,503.1 L130.7,502.6 L134.2,500.0 L137.3,500.7 L140.6,500.1 L144.1,496.8 L147.2,495.0 L151.6,495.8 L157.4,494.4 L158.4,492.4 L163.9,489.8 L164.6,487.3 L168.6,483.2 L172.2,483.1 L177.7,485.5 L180.4,485.4 L182.7,484.0 L184.0,482.3 L186.3,476.4 L185.4,475.0 L187.0,471.3 L186.7,468.7 L187.2,467.3 L190.8,464.0 L191.5,461.8 L193.3,459.8 L195.2,458.8 L196.3,454.6 L199.1,453.0 L200.9,449.4 L204.8,448.0 L206.6,444.6 L206.8,442.0 L211.6,438.6 L212.4,436.6 L217.9,430.3 L220.9,429.3 L223.1,425.4 L222.6,422.8 L223.3,420.5 L227.9,420.5 L229.9,417.3 L230.5,413.5 L231.2,412.8 L238.2,412.2 L243.7,410.3 L248.2,411.9 L251.1,416.1 L252.8,417.3 L255.9,418.1 L259.2,417.3 L262.6,415.5 L265.1,416.0 L270.2,418.8 L272.5,418.7 L273.1,420.1 L275.5,422.1 L280.4,422.4 L282.2,420.7 L285.2,419.5 L287.1,420.5 L291.7,420.2 L296.9,422.3 L298.2,422.2 L300.3,420.7 L302.0,421.8 L305.8,422.1 L307.5,421.1 L309.3,418.6 L316.4,420.7 L317.3,420.3 L318.3,418.5 L323.2,418.2 L325.7,419.0 L329.3,416.1 L337.1,414.1 L340.9,414.4 L345.7,406.6 L351.9,405.5 L353.5,404.1 L356.6,403.5 L358.4,402.2 L359.9,398.4 L363.0,393.9 L363.1,387.0 L365.1,378.0 L367.0,374.0 L366.9,365.6 L370.1,357.2 L370.3,351.9 L371.8,351.5 L375.4,347.3 L377.8,346.5 L380.8,349.2 L386.4,347.9 L387.6,346.4 L390.5,344.7 L397.0,335.4 L398.6,334.6 L394.5,328.8 L390.8,327.4 L389.3,324.5 L387.1,323.6 L387.1,321.9 L400.3,320.2 L404.6,313.3 L407.5,311.5 L409.1,309.0 L410.1,310.2 L417.3,311.1 L421.4,310.2 L424.2,311.5 L426.3,311.1 L427.0,312.2 L428.3,312.1 L428.7,314.0 L431.1,314.6 L436.3,313.6 L438.5,311.5 L442.2,310.0 L445.3,309.8 L448.6,311.8 L450.4,315.6 L454.8,315.9 L457.9,318.5 L462.5,316.7 L464.3,317.6 L466.6,316.8 L469.3,314.7 L476.0,312.4 L484.3,315.6 L486.0,314.8 L487.6,313.0 L493.9,313.0 L495.8,311.8 L497.3,313.5 L506.1,313.4 L507.5,313.9 L509.0,312.3 L510.7,311.9 L519.1,302.2 L521.3,301.9 L522.7,302.5 L525.9,299.0 L531.4,301.4 L536.0,298.9 L538.5,299.2 L542.1,297.9 L546.1,294.6 L549.8,289.8 L552.8,288.3 L553.9,284.6 L557.3,283.5 L558.3,281.4 L559.3,275.4 L563.4,274.4 L565.5,272.3 L573.3,267.8 L581.2,267.5 L582.1,265.0 L584.1,262.4 L584.3,260.5 L583.4,259.9 L580.6,259.9 L579.5,259.1 L579.8,252.9 L575.6,246.0 L571.9,243.0 L564.5,245.1 L558.8,242.7 L558.5,242.1 L560.5,239.8 L560.8,237.5 L555.9,233.6 L548.7,230.3 L551.2,228.5 L553.8,224.9 L554.2,222.1 L560.8,221.6 L560.8,218.9 L564.7,215.3 L565.9,212.0 L565.6,207.8 L566.8,206.5 L569.1,199.6 L569.1,198.5 L567.4,196.3 L567.3,194.3 L565.9,193.0 L565.5,191.2 L565.4,189.2 L566.8,187.3 L564.9,184.0 L567.1,180.3 L567.3,176.7 L568.4,173.9 L566.2,167.0 L567.7,164.0 L569.1,163.5 L570.3,161.6 L571.3,158.0 L574.0,156.8 L574.9,155.3 L574.5,151.4 L576.0,148.3 L574.3,144.9 L573.9,142.2 L572.6,140.9 L568.4,140.0 L561.2,143.6 L558.9,143.4 L555.1,139.1 L555.8,134.3 L552.8,127.8 L547.9,123.7 L545.9,118.7 L540.8,116.2 L539.6,114.6 L536.6,100.8 L537.9,99.4 L540.0,93.1 L539.9,91.9 L537.4,91.5 L539.0,84.4 L535.4,78.6 L532.8,78.9 L531.1,75.9 L527.5,74.7 L526.5,72.6 L524.4,72.0 L521.7,59.7 L519.8,58.4 L518.3,58.6 L512.1,65.1 L509.7,66.4 L507.8,66.1 L501.8,61.1 L496.1,61.6 L492.6,60.3 L490.3,60.4 L488.9,56.4 L485.4,58.1 L481.5,54.8 L479.7,48.9 L476.2,47.7 L471.4,40.1 L465.5,36.0 L464.3,33.2 L460.9,36.4 L457.4,37.3 L455.6,36.1 L453.4,35.8 L450.3,37.7 L445.0,37.9 L441.1,39.2 L438.4,41.9 L435.3,43.2 L434.0,42.6 L433.4,41.2 L427.8,35.7 L427.6,36.9 L426.4,36.8 L425.7,38.6 L423.0,39.9 L420.5,43.4 L418.2,43.8 L416.4,45.4 L414.9,48.3 L412.7,47.6 L411.6,49.5 L409.7,50.1 L408.6,52.1 L406.0,51.9 L403.8,53.0 L402.0,55.2 L399.5,55.7 L397.6,57.3 L394.3,58.1 L393.3,57.3 L391.5,58.4 L389.7,58.5 L386.5,57.0 L384.5,53.0 L380.8,49.7 L377.2,49.9 L373.7,48.4 L369.6,50.4 L368.0,50.1 L367.0,48.2 L364.5,48.3 L362.5,44.6 L359.6,42.6 L358.1,40.0 L355.5,38.0 L355.3,36.7 L356.5,35.0 L356.2,33.6 L353.3,30.0 L351.9,30.5 L351.3,34.3 L349.8,35.9 L348.1,35.2 L343.8,31.2 L340.4,36.4 L339.9,41.4 L345.5,43.1 L346.7,46.5 L346.7,49.1 L345.8,51.8 L344.4,53.2 L343.5,56.3 L344.6,58.1 L349.8,61.7 L351.2,68.7 L347.4,68.1 L342.2,69.2 L330.1,68.7 L326.7,69.3 L322.5,75.8 L322.7,78.7 L322.0,80.9 L316.7,81.6 L318.3,86.7 L318.2,88.0 L313.6,91.1 L312.4,90.3 L311.0,90.9 L308.5,93.7 L311.2,95.9 L313.0,99.5 L321.9,104.6 L320.0,107.7 L319.6,110.8 L319.7,111.8 L321.8,113.7 L321.5,117.0 L316.9,121.9 L316.5,123.3 L318.5,125.4 L322.4,126.0 L325.1,127.6 L326.9,132.0 L328.1,138.0 L327.8,142.1 L325.9,145.1 L322.2,148.6 L322.0,151.6 L323.0,152.6 L325.4,152.2 L331.0,153.9 L332.5,157.1 L331.6,158.2 L328.1,159.9 L321.7,168.3 L319.6,171.7 L317.5,179.5 L315.5,180.9 L312.3,181.1 L309.4,179.0 L305.8,177.6 L299.1,179.9 L297.4,181.0 L296.7,182.5 L288.2,188.0 L287.6,193.5 L286.1,195.5 L282.6,193.3 L279.8,192.6 L266.1,193.4 L266.7,195.1 L266.1,199.8 L269.0,204.0 L269.7,211.6 L272.4,214.8 L271.0,218.7 L274.0,222.5 L273.9,223.8 L272.3,226.3 L271.3,233.0 L271.9,234.6 L276.0,236.1 L276.6,237.3 L274.7,241.4 L271.5,242.7 L271.1,246.4 L272.0,250.1 L276.1,255.2 L275.7,257.3 L276.7,261.6 L280.3,264.7 L281.6,266.7 L280.2,272.9 L275.7,276.9 L271.5,276.4 L269.3,276.8 L262.8,284.6 L259.2,285.5 L256.8,284.1 L253.8,285.6 L252.2,283.8 L250.7,279.9 L242.3,279.3 L242.0,276.2 L239.7,275.1 L239.8,273.6 L238.7,271.4 L240.1,269.7 L239.4,268.3 L237.5,267.0 L238.1,264.3 L237.6,264.0 L234.5,267.8 L229.3,267.6 L225.7,269.6 L224.5,268.9 L223.3,266.2 L221.3,265.2 L219.8,266.1 L217.0,265.4 L216.0,267.9 L213.3,268.8 L210.3,267.3 L208.9,269.5 L201.3,267.3 L196.3,270.6 L195.6,273.6 L194.4,274.1 L185.8,272.1 L174.2,272.9 L167.5,272.5 L163.1,268.6 L157.1,267.0 L152.3,267.7 L151.2,269.2 L149.1,269.7 L146.4,268.2 L144.5,270.5 L145.7,274.4 L143.0,277.7 L149.0,288.0 L148.5,293.5 L146.3,297.7 L145.1,310.9 L144.0,312.9 L143.1,317.7 L141.4,321.8 L138.3,324.2 L137.7,326.7 L136.7,327.8 L138.3,330.9 L137.8,337.8 L136.9,338.6 L131.4,338.9 L129.0,343.0 L128.5,363.4 L126.4,368.0 L126.8,375.4 L122.3,379.5 L121.2,387.2 L121.9,389.4 L125.9,392.1 L124.3,395.2 L124.4,397.1 L120.8,400.1 L113.9,403.1 L113.3,405.5 L106.6,409.8 L104.0,407.2 L99.5,406.3 L97.3,404.8 L95.7,397.8 L94.4,396.3 L93.3,396.3 L89.4,394.2 L86.8,393.8 L75.0,399.4 L73.3,399.4 L72.1,397.9 L69.2,398.9 L64.2,402.9 L61.9,402.6 L60.4,404.4 Z" data-key="General Sanchez Cerro" tabindex="0" role="button" aria-label="Provincia de General Sánchez Cerro"></path>
+<path class="prov" id="p-Ilo" d="M302.8,847.4 L297.9,848.5 L292.5,846.0 L290.6,843.0 L284.8,840.4 L280.1,839.8 L262.2,835.1 L252.0,824.8 L249.0,823.2 L245.1,817.3 L243.1,805.3 L242.0,802.5 L235.6,795.5 L225.7,788.0 L225.1,769.3 L222.4,767.2 L217.6,767.0 L212.5,764.0 L206.6,764.0 L201.0,757.1 L199.0,756.0 L197.4,753.9 L193.8,746.1 L192.1,744.5 L190.0,745.2 L185.9,752.6 L178.5,752.7 L172.9,750.3 L167.1,749.6 L160.8,744.5 L158.7,743.5 L151.5,743.7 L145.8,745.5 L139.3,746.4 L137.4,745.4 L132.6,740.5 L130.4,739.8 L119.3,747.5 L115.4,748.8 L113.9,750.8 L114.2,744.9 L112.0,736.3 L110.6,733.2 L104.9,725.6 L105.7,724.1 L109.6,723.6 L110.0,722.6 L105.6,719.8 L99.8,721.9 L98.3,720.8 L96.8,715.0 L88.9,709.1 L83.6,702.7 L84.5,693.1 L86.2,688.9 L88.2,686.6 L88.3,684.6 L86.8,683.6 L83.6,684.4 L78.7,683.2 L74.6,679.8 L73.9,672.7 L72.6,668.3 L76.8,664.6 L79.3,660.5 L71.5,659.3 L57.8,658.7 L55.9,657.3 L55.1,655.5 L53.3,654.0 L49.8,654.7 L45.6,654.2 L41.8,655.4 L40.2,657.4 L39.2,660.6 L35.4,663.1 L33.1,667.8 L30.0,670.3 L32.8,671.8 L34.7,673.8 L36.9,674.5 L38.5,676.2 L39.4,679.7 L38.1,680.7 L36.8,684.5 L36.5,688.8 L39.8,686.8 L40.6,689.3 L44.9,691.2 L45.3,693.5 L45.7,692.7 L46.7,693.4 L47.1,692.9 L49.1,694.6 L51.6,693.4 L52.3,695.9 L55.6,697.0 L57.8,702.3 L56.8,705.6 L57.5,706.6 L57.1,710.2 L57.7,710.6 L60.9,708.7 L62.1,709.6 L61.8,711.6 L62.9,712.4 L63.7,715.5 L65.4,715.1 L66.4,717.1 L67.9,716.7 L68.6,717.7 L69.9,718.0 L69.8,719.6 L70.7,718.7 L73.0,720.3 L73.9,719.9 L75.1,721.3 L75.8,724.7 L77.3,725.8 L77.2,726.9 L79.5,731.0 L78.4,733.0 L79.6,733.5 L80.3,736.4 L78.5,741.3 L80.6,745.5 L81.3,751.0 L82.7,752.6 L85.1,759.0 L85.2,763.2 L88.2,766.0 L88.3,767.3 L89.8,769.9 L90.0,771.7 L88.8,773.7 L90.6,776.7 L90.7,780.0 L88.2,782.5 L87.5,785.7 L88.9,788.1 L90.9,794.8 L88.6,797.6 L92.4,809.0 L92.8,817.2 L92.1,819.1 L98.5,830.6 L99.4,835.7 L98.5,836.9 L99.1,837.5 L99.2,840.8 L100.1,842.4 L99.1,844.6 L96.8,846.7 L95.5,850.3 L91.9,853.5 L92.2,855.4 L91.1,856.0 L89.9,860.2 L88.0,860.5 L87.2,862.7 L85.5,864.3 L85.0,867.0 L86.0,867.7 L85.6,868.8 L86.2,869.1 L84.0,872.2 L81.9,873.7 L81.2,876.8 L82.2,877.2 L83.1,875.7 L84.9,876.8 L87.4,876.3 L88.9,874.3 L88.5,871.4 L89.6,869.7 L93.0,869.1 L96.3,870.0 L126.0,886.0 L170.2,911.1 L175.6,915.1 L175.5,916.6 L176.8,917.1 L177.6,919.6 L177.9,923.6 L181.1,924.3 L180.7,926.7 L183.9,928.2 L184.9,929.9 L186.6,929.7 L189.6,931.8 L194.4,932.7 L200.6,928.4 L201.1,926.4 L202.9,923.8 L202.8,915.1 L205.8,909.6 L207.4,908.5 L208.4,905.1 L211.4,900.3 L211.5,895.3 L212.4,892.6 L215.6,889.5 L217.7,889.5 L220.3,890.9 L221.2,890.2 L220.2,883.2 L220.7,881.8 L225.3,880.0 L231.4,882.4 L232.6,882.1 L236.6,877.6 L238.1,877.2 L242.9,878.0 L247.1,875.1 L250.2,877.5 L251.7,877.8 L257.3,869.6 L258.1,865.3 L263.0,863.0 L264.5,863.1 L267.6,865.7 L273.1,863.9 L276.3,861.5 L280.2,861.5 L291.8,867.2 L300.6,867.1 L302.2,858.4 L301.8,856.4 L303.1,854.1 L302.0,851.1 L302.8,847.4 Z" data-key="Ilo" tabindex="0" role="button" aria-label="Provincia de Ilo"></path>
+<path class="prov" id="p-Mariscal-Nieto" d="M659.1,500.9 L665.8,499.0 L672.4,493.6 L674.5,490.7 L676.5,483.5 L678.3,480.6 L683.6,477.5 L683.5,472.1 L685.0,467.7 L684.3,463.7 L685.3,461.9 L685.0,447.5 L685.5,444.3 L684.9,441.3 L685.4,438.4 L687.7,437.4 L689.5,433.9 L695.1,432.3 L700.6,427.1 L702.5,420.7 L701.0,418.5 L703.9,415.3 L707.7,414.5 L708.9,411.8 L712.6,410.0 L711.1,405.1 L715.4,403.8 L722.9,404.4 L727.6,399.6 L729.8,398.7 L730.0,394.3 L729.1,389.2 L725.6,385.4 L723.0,384.3 L722.2,378.5 L723.0,377.0 L728.4,372.0 L727.0,362.9 L725.7,361.5 L725.4,359.8 L722.8,358.1 L721.5,355.0 L718.2,353.5 L716.2,350.5 L713.0,352.2 L710.8,351.7 L705.7,348.9 L704.3,349.0 L701.5,354.1 L700.4,354.6 L695.2,354.4 L689.2,358.5 L688.3,361.1 L686.6,362.2 L682.9,361.2 L680.5,359.1 L678.5,358.5 L673.8,354.1 L670.9,353.4 L663.2,349.2 L660.9,345.2 L658.1,342.7 L656.7,342.4 L653.8,343.1 L650.1,341.7 L648.6,339.4 L648.5,335.6 L645.2,332.4 L646.3,330.2 L646.7,327.5 L645.0,321.6 L645.6,316.4 L643.2,314.1 L642.9,307.5 L641.2,304.7 L633.9,305.7 L627.7,298.0 L624.6,292.8 L622.2,291.5 L620.7,289.3 L618.6,288.6 L613.7,288.5 L612.3,287.3 L599.3,282.2 L595.6,280.3 L593.4,278.2 L586.7,275.9 L581.0,270.7 L581.2,267.5 L573.3,267.8 L565.5,272.3 L563.4,274.4 L559.3,275.4 L558.3,281.4 L557.3,283.5 L553.9,284.6 L552.8,288.3 L549.8,289.8 L546.1,294.6 L542.1,297.9 L538.5,299.2 L536.0,298.9 L531.4,301.4 L525.9,299.0 L522.7,302.5 L521.3,301.9 L519.1,302.2 L510.7,311.9 L509.0,312.3 L507.5,313.9 L506.1,313.4 L497.3,313.5 L495.8,311.8 L493.9,313.0 L487.6,313.0 L486.0,314.8 L484.3,315.6 L476.0,312.4 L469.3,314.7 L466.6,316.8 L464.3,317.6 L462.5,316.7 L457.9,318.5 L454.8,315.9 L450.4,315.6 L448.6,311.8 L445.3,309.8 L442.2,310.0 L438.5,311.5 L436.3,313.6 L431.1,314.6 L428.7,314.0 L428.3,312.1 L427.0,312.2 L426.3,311.1 L424.2,311.5 L421.4,310.2 L417.3,311.1 L410.1,310.2 L409.1,309.0 L407.5,311.5 L404.6,313.3 L400.3,320.2 L387.1,321.9 L387.1,323.6 L389.3,324.5 L390.8,327.4 L394.5,328.8 L398.6,334.6 L397.0,335.4 L390.5,344.7 L387.6,346.4 L386.4,347.9 L380.8,349.2 L377.8,346.5 L375.4,347.3 L371.8,351.5 L370.3,351.9 L370.1,357.2 L366.9,365.6 L367.0,374.0 L365.1,378.0 L363.1,387.0 L363.0,393.9 L359.9,398.4 L358.4,402.2 L356.6,403.5 L353.5,404.1 L351.9,405.5 L345.7,406.6 L340.9,414.4 L337.1,414.1 L329.3,416.1 L325.7,419.0 L323.2,418.2 L318.3,418.5 L317.3,420.3 L316.4,420.7 L309.3,418.6 L307.5,421.1 L305.8,422.1 L302.0,421.8 L300.3,420.7 L298.2,422.2 L296.9,422.3 L291.7,420.2 L287.1,420.5 L285.2,419.5 L282.2,420.7 L280.4,422.4 L275.5,422.1 L273.1,420.1 L272.5,418.7 L270.2,418.8 L265.1,416.0 L262.6,415.5 L259.2,417.3 L255.9,418.1 L252.8,417.3 L251.1,416.1 L248.2,411.9 L243.7,410.3 L238.2,412.2 L231.2,412.8 L230.5,413.5 L229.9,417.3 L227.9,420.5 L223.3,420.5 L222.6,422.8 L223.1,425.4 L220.9,429.3 L217.9,430.3 L212.4,436.6 L211.6,438.6 L206.8,442.0 L206.6,444.6 L204.8,448.0 L200.9,449.4 L199.1,453.0 L196.3,454.6 L195.2,458.8 L193.3,459.8 L191.5,461.8 L190.8,464.0 L187.2,467.3 L186.7,468.7 L187.0,471.3 L185.4,475.0 L186.3,476.4 L184.0,482.3 L182.7,484.0 L180.4,485.4 L177.7,485.5 L172.2,483.1 L168.6,483.2 L164.6,487.3 L163.9,489.8 L158.4,492.4 L157.4,494.4 L151.6,495.8 L147.2,495.0 L144.1,496.8 L140.6,500.1 L137.3,500.7 L134.2,500.0 L130.7,502.6 L125.9,503.1 L124.4,505.1 L122.3,505.5 L119.6,509.0 L117.6,510.4 L113.3,506.8 L110.4,505.5 L107.5,505.9 L103.8,503.2 L100.2,503.7 L96.2,506.0 L95.9,509.1 L98.2,512.5 L98.3,514.3 L93.5,519.9 L89.0,520.3 L85.4,518.5 L83.0,518.2 L76.7,521.3 L74.6,523.9 L74.9,527.4 L75.4,529.8 L77.6,532.1 L79.3,541.1 L85.4,540.2 L86.4,538.5 L88.8,537.8 L89.4,540.6 L92.5,542.8 L95.1,543.3 L100.8,541.5 L104.7,547.2 L110.4,551.1 L110.4,552.5 L107.2,558.5 L107.7,560.4 L111.9,562.8 L112.8,566.3 L112.1,569.7 L114.7,570.8 L115.2,574.3 L118.2,576.8 L118.0,578.5 L116.0,582.4 L113.7,584.2 L113.3,585.9 L111.7,587.4 L112.7,589.2 L112.1,591.3 L108.8,593.9 L107.5,596.7 L103.9,599.3 L95.2,603.0 L93.4,604.9 L86.3,616.1 L81.5,621.7 L68.5,633.4 L62.3,645.6 L59.8,648.0 L55.4,650.2 L53.3,654.0 L55.1,655.5 L55.9,657.3 L57.8,658.7 L71.5,659.3 L79.3,660.5 L76.8,664.6 L72.6,668.3 L73.9,672.7 L74.6,679.8 L78.7,683.2 L83.6,684.4 L86.8,683.6 L88.3,684.6 L88.2,686.6 L86.2,688.9 L84.5,693.1 L83.6,702.7 L88.9,709.1 L96.8,715.0 L98.3,720.8 L99.8,721.9 L105.6,719.8 L110.0,722.6 L109.6,723.6 L105.7,724.1 L104.9,725.6 L110.6,733.2 L112.0,736.3 L114.2,744.9 L113.9,750.8 L115.4,748.8 L119.3,747.5 L130.4,739.8 L132.6,740.5 L137.4,745.4 L139.3,746.4 L145.8,745.5 L151.5,743.7 L158.7,743.5 L160.8,744.5 L167.1,749.6 L172.9,750.3 L178.5,752.7 L185.9,752.6 L190.0,745.2 L192.1,744.5 L193.8,746.1 L197.4,753.9 L199.0,756.0 L201.0,757.1 L206.6,764.0 L212.5,764.0 L217.6,767.0 L222.4,767.2 L225.1,769.3 L225.7,788.0 L235.6,795.5 L242.0,802.5 L243.1,805.3 L245.1,817.3 L249.0,823.2 L252.0,824.8 L262.2,835.1 L280.1,839.8 L284.8,840.4 L290.6,843.0 L292.5,846.0 L297.9,848.5 L302.8,847.4 L304.3,844.9 L304.7,835.4 L308.1,829.6 L308.2,825.9 L309.6,821.1 L313.9,815.4 L314.0,811.6 L315.3,808.9 L314.7,805.3 L315.9,802.7 L319.6,800.8 L322.0,798.6 L323.4,794.7 L326.9,792.4 L327.1,790.9 L329.9,789.8 L332.8,787.5 L336.2,783.5 L336.8,781.3 L342.6,773.4 L348.7,768.5 L351.0,765.8 L352.2,763.0 L356.2,759.8 L358.0,756.4 L360.0,755.5 L362.7,751.3 L363.6,750.5 L367.3,749.9 L370.3,746.3 L372.8,746.0 L374.5,744.9 L376.2,737.5 L382.9,730.6 L383.4,727.1 L380.1,724.7 L379.3,721.8 L377.3,720.6 L375.6,717.0 L375.9,712.1 L378.2,702.7 L384.2,688.9 L386.0,686.5 L391.5,681.7 L392.4,678.8 L397.4,673.3 L397.3,672.5 L393.9,670.8 L392.6,664.7 L393.6,663.1 L396.6,662.7 L398.1,661.6 L399.5,655.4 L403.4,648.8 L405.6,647.9 L406.0,645.6 L407.8,642.2 L407.5,640.6 L413.6,638.4 L415.8,635.6 L418.0,635.5 L423.0,633.2 L426.8,634.1 L431.2,634.0 L432.8,635.5 L438.7,633.0 L442.2,635.8 L444.4,634.1 L447.3,633.8 L455.6,629.5 L459.8,625.8 L462.8,626.0 L467.9,627.5 L470.3,621.7 L472.1,620.7 L476.7,615.7 L480.7,613.2 L483.8,608.3 L485.8,600.7 L490.2,595.3 L492.5,589.3 L496.0,584.8 L496.5,582.4 L496.0,580.4 L497.1,578.7 L497.5,575.6 L498.6,574.1 L503.1,572.2 L508.6,573.7 L510.0,571.6 L511.4,570.9 L515.7,571.5 L517.7,570.3 L517.9,566.1 L518.9,564.2 L518.8,561.5 L520.1,558.1 L522.1,555.5 L519.9,553.2 L517.9,547.7 L517.6,544.8 L516.5,543.0 L515.5,542.6 L515.6,539.7 L511.5,537.1 L510.9,533.0 L512.0,529.5 L516.9,523.0 L517.3,520.4 L519.2,517.6 L520.3,513.4 L519.7,511.8 L514.5,508.5 L510.1,503.7 L512.0,498.8 L514.4,498.2 L515.4,496.5 L514.2,493.7 L512.8,493.1 L516.3,488.4 L516.3,482.0 L521.0,478.2 L520.6,476.1 L517.1,472.7 L518.1,469.3 L517.0,466.4 L516.7,462.9 L520.0,459.7 L521.4,452.6 L525.2,452.5 L528.6,449.3 L530.7,448.2 L533.8,447.4 L536.4,447.7 L540.1,442.5 L547.4,440.8 L550.1,438.4 L550.8,434.6 L553.2,432.2 L555.1,432.6 L559.1,431.4 L559.7,429.0 L562.0,427.9 L566.3,428.9 L571.0,425.7 L576.2,424.7 L578.9,422.8 L578.9,421.0 L582.0,420.0 L583.7,419.9 L586.4,422.0 L591.1,423.9 L602.1,418.6 L604.2,419.7 L603.2,423.0 L605.6,425.8 L608.1,426.3 L608.7,427.0 L609.1,432.1 L611.9,434.3 L623.3,438.0 L628.2,438.1 L632.1,437.1 L636.8,441.9 L640.3,440.8 L642.2,441.1 L642.8,441.8 L641.5,450.0 L636.8,452.0 L635.3,453.5 L631.8,452.1 L628.6,453.0 L626.2,454.2 L624.4,456.3 L623.3,460.5 L620.9,461.2 L616.5,459.9 L613.6,462.5 L610.7,470.5 L609.6,476.8 L607.9,481.6 L606.3,483.7 L607.0,487.6 L606.3,492.0 L609.0,497.5 L608.7,501.5 L612.0,507.6 L615.6,509.8 L621.4,511.0 L622.3,510.6 L622.9,507.4 L625.7,504.6 L628.8,503.3 L635.8,503.0 L642.8,497.7 L643.9,495.5 L643.3,494.1 L644.7,489.9 L646.4,487.9 L648.3,490.1 L658.2,492.7 L658.6,494.9 L656.5,498.2 L659.1,500.9 Z" data-key="Mariscal Nieto" tabindex="0" role="button" aria-label="Provincia de Mariscal Nieto"></path></g>
+          <g id="selLayer"></g>
+          <g id="leaders"></g>
+          <g id="labels"><text class="plabel" x="443.6" y="181.9" style="font-size:14.8px;--sw:1.2px" data-label="General-Sanchez-Cerro">General Sánchez Cerro</text>
+<text class="plabel" x="169.1" y="828.2" style="font-size:14.8px;--sw:1.2px" data-label="Ilo">Ilo</text>
+<text class="plabel" x="256.3" y="610.7" style="font-size:14.8px;--sw:1.2px" data-label="Mariscal-Nieto">Mariscal Nieto</text></g>
+        </g>
+      </svg>
+      <div class="tooltip" id="tip" hidden></div>
+      </div>
+      <div class="legend" id="legend">
+        <div class="t" id="legendTitle">Provincias</div>
+        <div class="items" id="legendItems"></div>
+        <div class="bar" id="legendBar"></div>
+        <div class="r"><span id="legendMin"></span><span id="legendMax"></span></div>
+      </div>
+    </section>
+
+    <div class="side">
+    <aside class="card panel">
+      <div class="panel-top">
+        <div>
+          <h3 id="pTitle">Distrito Judicial de Moquegua</h3>
+          <div class="sub" id="pSub">Selecciona una provincia en el mapa o en la tabla</div>
+        </div>
+        <span class="chip" id="pChip">3 provincias</span>
+      </div>
+      <div class="stat-grid" id="pStats"></div>
+      <div class="sec">Dependencias por provincia</div>
+      <div class="bars" id="pBars"></div>
+      <div class="note" id="pNote"></div>
+      <div class="sec">Órganos jurisdiccionales del distrito</div>
+      <div class="organs">
+        <div class="organ">
+          <span class="n">3</span><span class="lbl">Salas superiores</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">20</span><span class="lbl">Juzgados especializados o mixtos</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">8</span><span class="lbl">Juzgados de paz letrado</span>
+          <span class="d">Permanentes 30 · Transitorias 1 · Total 31</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="display">Provincia</th>
+            <th data-sort="capital">Capital</th>
+            <th data-sort="pop">Población</th>
+            <th data-sort="area">Superficie (km²)</th>
+            <th data-sort="dens">Densidad</th>
+            <th data-sort="dep">Dependencias</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td><td>3 provincias</td><td>204,742</td><td>15,735</td>
+            <td>13.01</td><td>31</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    Fuente de los datos: «DEPENDENCIAS JUN 2026 Documento_v2» · Distrito Judicial de Moquegua (3 provincias, 31 dependencias, población 204,742 hab., superficie 15,735 km²).<br>
+    Geometría: geoBoundaries (PER ADM2, versión simplificada, CC BY 4.0).
+    Documento HTML autónomo, sin conexión a internet.
+  </footer>
+</div>
+
+<script>
+const PROVS = [{"key":"General Sanchez Cerro","display":"General Sánchez Cerro","capital":"Omate","pop":12103,"area":5682,"dens":2.13,"dep":3,"perm":3,"trans":0,"dark":false,"color":"#7d2a21","fs":14.8,"sw":1.2,"path":"M60.4,404.4 L58.3,412.0 L59.2,416.6 L59.0,419.8 L57.0,423.4 L57.3,425.9 L55.5,429.6 L55.2,431.5 L53.0,433.3 L51.8,435.3 L51.6,440.8 L52.6,447.0 L54.2,448.1 L55.9,450.7 L53.7,452.4 L52.8,454.3 L53.4,464.7 L57.0,474.6 L62.0,480.2 L60.6,485.1 L61.1,490.9 L60.5,492.5 L57.9,494.9 L53.3,495.6 L53.2,497.8 L50.0,497.7 L46.3,498.7 L44.2,500.6 L44.2,503.7 L41.6,506.7 L42.9,510.2 L44.9,511.8 L49.0,511.3 L51.6,509.5 L54.3,510.0 L57.1,511.6 L62.6,508.7 L65.7,509.2 L67.8,508.5 L69.3,509.1 L71.6,511.6 L71.6,515.7 L75.5,518.4 L76.8,520.1 L76.7,521.3 L83.0,518.2 L85.4,518.5 L89.0,520.3 L93.5,519.9 L98.3,514.3 L98.2,512.5 L95.9,509.1 L96.2,506.0 L100.2,503.7 L103.8,503.2 L107.5,505.9 L110.4,505.5 L113.3,506.8 L117.6,510.4 L119.6,509.0 L122.3,505.5 L124.4,505.1 L125.9,503.1 L130.7,502.6 L134.2,500.0 L137.3,500.7 L140.6,500.1 L144.1,496.8 L147.2,495.0 L151.6,495.8 L157.4,494.4 L158.4,492.4 L163.9,489.8 L164.6,487.3 L168.6,483.2 L172.2,483.1 L177.7,485.5 L180.4,485.4 L182.7,484.0 L184.0,482.3 L186.3,476.4 L185.4,475.0 L187.0,471.3 L186.7,468.7 L187.2,467.3 L190.8,464.0 L191.5,461.8 L193.3,459.8 L195.2,458.8 L196.3,454.6 L199.1,453.0 L200.9,449.4 L204.8,448.0 L206.6,444.6 L206.8,442.0 L211.6,438.6 L212.4,436.6 L217.9,430.3 L220.9,429.3 L223.1,425.4 L222.6,422.8 L223.3,420.5 L227.9,420.5 L229.9,417.3 L230.5,413.5 L231.2,412.8 L238.2,412.2 L243.7,410.3 L248.2,411.9 L251.1,416.1 L252.8,417.3 L255.9,418.1 L259.2,417.3 L262.6,415.5 L265.1,416.0 L270.2,418.8 L272.5,418.7 L273.1,420.1 L275.5,422.1 L280.4,422.4 L282.2,420.7 L285.2,419.5 L287.1,420.5 L291.7,420.2 L296.9,422.3 L298.2,422.2 L300.3,420.7 L302.0,421.8 L305.8,422.1 L307.5,421.1 L309.3,418.6 L316.4,420.7 L317.3,420.3 L318.3,418.5 L323.2,418.2 L325.7,419.0 L329.3,416.1 L337.1,414.1 L340.9,414.4 L345.7,406.6 L351.9,405.5 L353.5,404.1 L356.6,403.5 L358.4,402.2 L359.9,398.4 L363.0,393.9 L363.1,387.0 L365.1,378.0 L367.0,374.0 L366.9,365.6 L370.1,357.2 L370.3,351.9 L371.8,351.5 L375.4,347.3 L377.8,346.5 L380.8,349.2 L386.4,347.9 L387.6,346.4 L390.5,344.7 L397.0,335.4 L398.6,334.6 L394.5,328.8 L390.8,327.4 L389.3,324.5 L387.1,323.6 L387.1,321.9 L400.3,320.2 L404.6,313.3 L407.5,311.5 L409.1,309.0 L410.1,310.2 L417.3,311.1 L421.4,310.2 L424.2,311.5 L426.3,311.1 L427.0,312.2 L428.3,312.1 L428.7,314.0 L431.1,314.6 L436.3,313.6 L438.5,311.5 L442.2,310.0 L445.3,309.8 L448.6,311.8 L450.4,315.6 L454.8,315.9 L457.9,318.5 L462.5,316.7 L464.3,317.6 L466.6,316.8 L469.3,314.7 L476.0,312.4 L484.3,315.6 L486.0,314.8 L487.6,313.0 L493.9,313.0 L495.8,311.8 L497.3,313.5 L506.1,313.4 L507.5,313.9 L509.0,312.3 L510.7,311.9 L519.1,302.2 L521.3,301.9 L522.7,302.5 L525.9,299.0 L531.4,301.4 L536.0,298.9 L538.5,299.2 L542.1,297.9 L546.1,294.6 L549.8,289.8 L552.8,288.3 L553.9,284.6 L557.3,283.5 L558.3,281.4 L559.3,275.4 L563.4,274.4 L565.5,272.3 L573.3,267.8 L581.2,267.5 L582.1,265.0 L584.1,262.4 L584.3,260.5 L583.4,259.9 L580.6,259.9 L579.5,259.1 L579.8,252.9 L575.6,246.0 L571.9,243.0 L564.5,245.1 L558.8,242.7 L558.5,242.1 L560.5,239.8 L560.8,237.5 L555.9,233.6 L548.7,230.3 L551.2,228.5 L553.8,224.9 L554.2,222.1 L560.8,221.6 L560.8,218.9 L564.7,215.3 L565.9,212.0 L565.6,207.8 L566.8,206.5 L569.1,199.6 L569.1,198.5 L567.4,196.3 L567.3,194.3 L565.9,193.0 L565.5,191.2 L565.4,189.2 L566.8,187.3 L564.9,184.0 L567.1,180.3 L567.3,176.7 L568.4,173.9 L566.2,167.0 L567.7,164.0 L569.1,163.5 L570.3,161.6 L571.3,158.0 L574.0,156.8 L574.9,155.3 L574.5,151.4 L576.0,148.3 L574.3,144.9 L573.9,142.2 L572.6,140.9 L568.4,140.0 L561.2,143.6 L558.9,143.4 L555.1,139.1 L555.8,134.3 L552.8,127.8 L547.9,123.7 L545.9,118.7 L540.8,116.2 L539.6,114.6 L536.6,100.8 L537.9,99.4 L540.0,93.1 L539.9,91.9 L537.4,91.5 L539.0,84.4 L535.4,78.6 L532.8,78.9 L531.1,75.9 L527.5,74.7 L526.5,72.6 L524.4,72.0 L521.7,59.7 L519.8,58.4 L518.3,58.6 L512.1,65.1 L509.7,66.4 L507.8,66.1 L501.8,61.1 L496.1,61.6 L492.6,60.3 L490.3,60.4 L488.9,56.4 L485.4,58.1 L481.5,54.8 L479.7,48.9 L476.2,47.7 L471.4,40.1 L465.5,36.0 L464.3,33.2 L460.9,36.4 L457.4,37.3 L455.6,36.1 L453.4,35.8 L450.3,37.7 L445.0,37.9 L441.1,39.2 L438.4,41.9 L435.3,43.2 L434.0,42.6 L433.4,41.2 L427.8,35.7 L427.6,36.9 L426.4,36.8 L425.7,38.6 L423.0,39.9 L420.5,43.4 L418.2,43.8 L416.4,45.4 L414.9,48.3 L412.7,47.6 L411.6,49.5 L409.7,50.1 L408.6,52.1 L406.0,51.9 L403.8,53.0 L402.0,55.2 L399.5,55.7 L397.6,57.3 L394.3,58.1 L393.3,57.3 L391.5,58.4 L389.7,58.5 L386.5,57.0 L384.5,53.0 L380.8,49.7 L377.2,49.9 L373.7,48.4 L369.6,50.4 L368.0,50.1 L367.0,48.2 L364.5,48.3 L362.5,44.6 L359.6,42.6 L358.1,40.0 L355.5,38.0 L355.3,36.7 L356.5,35.0 L356.2,33.6 L353.3,30.0 L351.9,30.5 L351.3,34.3 L349.8,35.9 L348.1,35.2 L343.8,31.2 L340.4,36.4 L339.9,41.4 L345.5,43.1 L346.7,46.5 L346.7,49.1 L345.8,51.8 L344.4,53.2 L343.5,56.3 L344.6,58.1 L349.8,61.7 L351.2,68.7 L347.4,68.1 L342.2,69.2 L330.1,68.7 L326.7,69.3 L322.5,75.8 L322.7,78.7 L322.0,80.9 L316.7,81.6 L318.3,86.7 L318.2,88.0 L313.6,91.1 L312.4,90.3 L311.0,90.9 L308.5,93.7 L311.2,95.9 L313.0,99.5 L321.9,104.6 L320.0,107.7 L319.6,110.8 L319.7,111.8 L321.8,113.7 L321.5,117.0 L316.9,121.9 L316.5,123.3 L318.5,125.4 L322.4,126.0 L325.1,127.6 L326.9,132.0 L328.1,138.0 L327.8,142.1 L325.9,145.1 L322.2,148.6 L322.0,151.6 L323.0,152.6 L325.4,152.2 L331.0,153.9 L332.5,157.1 L331.6,158.2 L328.1,159.9 L321.7,168.3 L319.6,171.7 L317.5,179.5 L315.5,180.9 L312.3,181.1 L309.4,179.0 L305.8,177.6 L299.1,179.9 L297.4,181.0 L296.7,182.5 L288.2,188.0 L287.6,193.5 L286.1,195.5 L282.6,193.3 L279.8,192.6 L266.1,193.4 L266.7,195.1 L266.1,199.8 L269.0,204.0 L269.7,211.6 L272.4,214.8 L271.0,218.7 L274.0,222.5 L273.9,223.8 L272.3,226.3 L271.3,233.0 L271.9,234.6 L276.0,236.1 L276.6,237.3 L274.7,241.4 L271.5,242.7 L271.1,246.4 L272.0,250.1 L276.1,255.2 L275.7,257.3 L276.7,261.6 L280.3,264.7 L281.6,266.7 L280.2,272.9 L275.7,276.9 L271.5,276.4 L269.3,276.8 L262.8,284.6 L259.2,285.5 L256.8,284.1 L253.8,285.6 L252.2,283.8 L250.7,279.9 L242.3,279.3 L242.0,276.2 L239.7,275.1 L239.8,273.6 L238.7,271.4 L240.1,269.7 L239.4,268.3 L237.5,267.0 L238.1,264.3 L237.6,264.0 L234.5,267.8 L229.3,267.6 L225.7,269.6 L224.5,268.9 L223.3,266.2 L221.3,265.2 L219.8,266.1 L217.0,265.4 L216.0,267.9 L213.3,268.8 L210.3,267.3 L208.9,269.5 L201.3,267.3 L196.3,270.6 L195.6,273.6 L194.4,274.1 L185.8,272.1 L174.2,272.9 L167.5,272.5 L163.1,268.6 L157.1,267.0 L152.3,267.7 L151.2,269.2 L149.1,269.7 L146.4,268.2 L144.5,270.5 L145.7,274.4 L143.0,277.7 L149.0,288.0 L148.5,293.5 L146.3,297.7 L145.1,310.9 L144.0,312.9 L143.1,317.7 L141.4,321.8 L138.3,324.2 L137.7,326.7 L136.7,327.8 L138.3,330.9 L137.8,337.8 L136.9,338.6 L131.4,338.9 L129.0,343.0 L128.5,363.4 L126.4,368.0 L126.8,375.4 L122.3,379.5 L121.2,387.2 L121.9,389.4 L125.9,392.1 L124.3,395.2 L124.4,397.1 L120.8,400.1 L113.9,403.1 L113.3,405.5 L106.6,409.8 L104.0,407.2 L99.5,406.3 L97.3,404.8 L95.7,397.8 L94.4,396.3 L93.3,396.3 L89.4,394.2 L86.8,393.8 L75.0,399.4 L73.3,399.4 L72.1,397.9 L69.2,398.9 L64.2,402.9 L61.9,402.6 L60.4,404.4 Z","lx":443.6,"ly":181.9},{"key":"Ilo","display":"Ilo","capital":"Ilo","pop":90601,"area":1381,"dens":65.61,"dep":12,"perm":11,"trans":1,"dark":false,"color":"#8b8f93","fs":14.8,"sw":1.2,"path":"M302.8,847.4 L297.9,848.5 L292.5,846.0 L290.6,843.0 L284.8,840.4 L280.1,839.8 L262.2,835.1 L252.0,824.8 L249.0,823.2 L245.1,817.3 L243.1,805.3 L242.0,802.5 L235.6,795.5 L225.7,788.0 L225.1,769.3 L222.4,767.2 L217.6,767.0 L212.5,764.0 L206.6,764.0 L201.0,757.1 L199.0,756.0 L197.4,753.9 L193.8,746.1 L192.1,744.5 L190.0,745.2 L185.9,752.6 L178.5,752.7 L172.9,750.3 L167.1,749.6 L160.8,744.5 L158.7,743.5 L151.5,743.7 L145.8,745.5 L139.3,746.4 L137.4,745.4 L132.6,740.5 L130.4,739.8 L119.3,747.5 L115.4,748.8 L113.9,750.8 L114.2,744.9 L112.0,736.3 L110.6,733.2 L104.9,725.6 L105.7,724.1 L109.6,723.6 L110.0,722.6 L105.6,719.8 L99.8,721.9 L98.3,720.8 L96.8,715.0 L88.9,709.1 L83.6,702.7 L84.5,693.1 L86.2,688.9 L88.2,686.6 L88.3,684.6 L86.8,683.6 L83.6,684.4 L78.7,683.2 L74.6,679.8 L73.9,672.7 L72.6,668.3 L76.8,664.6 L79.3,660.5 L71.5,659.3 L57.8,658.7 L55.9,657.3 L55.1,655.5 L53.3,654.0 L49.8,654.7 L45.6,654.2 L41.8,655.4 L40.2,657.4 L39.2,660.6 L35.4,663.1 L33.1,667.8 L30.0,670.3 L32.8,671.8 L34.7,673.8 L36.9,674.5 L38.5,676.2 L39.4,679.7 L38.1,680.7 L36.8,684.5 L36.5,688.8 L39.8,686.8 L40.6,689.3 L44.9,691.2 L45.3,693.5 L45.7,692.7 L46.7,693.4 L47.1,692.9 L49.1,694.6 L51.6,693.4 L52.3,695.9 L55.6,697.0 L57.8,702.3 L56.8,705.6 L57.5,706.6 L57.1,710.2 L57.7,710.6 L60.9,708.7 L62.1,709.6 L61.8,711.6 L62.9,712.4 L63.7,715.5 L65.4,715.1 L66.4,717.1 L67.9,716.7 L68.6,717.7 L69.9,718.0 L69.8,719.6 L70.7,718.7 L73.0,720.3 L73.9,719.9 L75.1,721.3 L75.8,724.7 L77.3,725.8 L77.2,726.9 L79.5,731.0 L78.4,733.0 L79.6,733.5 L80.3,736.4 L78.5,741.3 L80.6,745.5 L81.3,751.0 L82.7,752.6 L85.1,759.0 L85.2,763.2 L88.2,766.0 L88.3,767.3 L89.8,769.9 L90.0,771.7 L88.8,773.7 L90.6,776.7 L90.7,780.0 L88.2,782.5 L87.5,785.7 L88.9,788.1 L90.9,794.8 L88.6,797.6 L92.4,809.0 L92.8,817.2 L92.1,819.1 L98.5,830.6 L99.4,835.7 L98.5,836.9 L99.1,837.5 L99.2,840.8 L100.1,842.4 L99.1,844.6 L96.8,846.7 L95.5,850.3 L91.9,853.5 L92.2,855.4 L91.1,856.0 L89.9,860.2 L88.0,860.5 L87.2,862.7 L85.5,864.3 L85.0,867.0 L86.0,867.7 L85.6,868.8 L86.2,869.1 L84.0,872.2 L81.9,873.7 L81.2,876.8 L82.2,877.2 L83.1,875.7 L84.9,876.8 L87.4,876.3 L88.9,874.3 L88.5,871.4 L89.6,869.7 L93.0,869.1 L96.3,870.0 L126.0,886.0 L170.2,911.1 L175.6,915.1 L175.5,916.6 L176.8,917.1 L177.6,919.6 L177.9,923.6 L181.1,924.3 L180.7,926.7 L183.9,928.2 L184.9,929.9 L186.6,929.7 L189.6,931.8 L194.4,932.7 L200.6,928.4 L201.1,926.4 L202.9,923.8 L202.8,915.1 L205.8,909.6 L207.4,908.5 L208.4,905.1 L211.4,900.3 L211.5,895.3 L212.4,892.6 L215.6,889.5 L217.7,889.5 L220.3,890.9 L221.2,890.2 L220.2,883.2 L220.7,881.8 L225.3,880.0 L231.4,882.4 L232.6,882.1 L236.6,877.6 L238.1,877.2 L242.9,878.0 L247.1,875.1 L250.2,877.5 L251.7,877.8 L257.3,869.6 L258.1,865.3 L263.0,863.0 L264.5,863.1 L267.6,865.7 L273.1,863.9 L276.3,861.5 L280.2,861.5 L291.8,867.2 L300.6,867.1 L302.2,858.4 L301.8,856.4 L303.1,854.1 L302.0,851.1 L302.8,847.4 Z","lx":169.1,"ly":828.2},{"key":"Mariscal Nieto","display":"Mariscal Nieto","capital":"Moquegua","pop":102038,"area":8672,"dens":11.77,"dep":16,"perm":16,"trans":0,"dark":false,"color":"#8e2b23","fs":14.8,"sw":1.2,"path":"M659.1,500.9 L665.8,499.0 L672.4,493.6 L674.5,490.7 L676.5,483.5 L678.3,480.6 L683.6,477.5 L683.5,472.1 L685.0,467.7 L684.3,463.7 L685.3,461.9 L685.0,447.5 L685.5,444.3 L684.9,441.3 L685.4,438.4 L687.7,437.4 L689.5,433.9 L695.1,432.3 L700.6,427.1 L702.5,420.7 L701.0,418.5 L703.9,415.3 L707.7,414.5 L708.9,411.8 L712.6,410.0 L711.1,405.1 L715.4,403.8 L722.9,404.4 L727.6,399.6 L729.8,398.7 L730.0,394.3 L729.1,389.2 L725.6,385.4 L723.0,384.3 L722.2,378.5 L723.0,377.0 L728.4,372.0 L727.0,362.9 L725.7,361.5 L725.4,359.8 L722.8,358.1 L721.5,355.0 L718.2,353.5 L716.2,350.5 L713.0,352.2 L710.8,351.7 L705.7,348.9 L704.3,349.0 L701.5,354.1 L700.4,354.6 L695.2,354.4 L689.2,358.5 L688.3,361.1 L686.6,362.2 L682.9,361.2 L680.5,359.1 L678.5,358.5 L673.8,354.1 L670.9,353.4 L663.2,349.2 L660.9,345.2 L658.1,342.7 L656.7,342.4 L653.8,343.1 L650.1,341.7 L648.6,339.4 L648.5,335.6 L645.2,332.4 L646.3,330.2 L646.7,327.5 L645.0,321.6 L645.6,316.4 L643.2,314.1 L642.9,307.5 L641.2,304.7 L633.9,305.7 L627.7,298.0 L624.6,292.8 L622.2,291.5 L620.7,289.3 L618.6,288.6 L613.7,288.5 L612.3,287.3 L599.3,282.2 L595.6,280.3 L593.4,278.2 L586.7,275.9 L581.0,270.7 L581.2,267.5 L573.3,267.8 L565.5,272.3 L563.4,274.4 L559.3,275.4 L558.3,281.4 L557.3,283.5 L553.9,284.6 L552.8,288.3 L549.8,289.8 L546.1,294.6 L542.1,297.9 L538.5,299.2 L536.0,298.9 L531.4,301.4 L525.9,299.0 L522.7,302.5 L521.3,301.9 L519.1,302.2 L510.7,311.9 L509.0,312.3 L507.5,313.9 L506.1,313.4 L497.3,313.5 L495.8,311.8 L493.9,313.0 L487.6,313.0 L486.0,314.8 L484.3,315.6 L476.0,312.4 L469.3,314.7 L466.6,316.8 L464.3,317.6 L462.5,316.7 L457.9,318.5 L454.8,315.9 L450.4,315.6 L448.6,311.8 L445.3,309.8 L442.2,310.0 L438.5,311.5 L436.3,313.6 L431.1,314.6 L428.7,314.0 L428.3,312.1 L427.0,312.2 L426.3,311.1 L424.2,311.5 L421.4,310.2 L417.3,311.1 L410.1,310.2 L409.1,309.0 L407.5,311.5 L404.6,313.3 L400.3,320.2 L387.1,321.9 L387.1,323.6 L389.3,324.5 L390.8,327.4 L394.5,328.8 L398.6,334.6 L397.0,335.4 L390.5,344.7 L387.6,346.4 L386.4,347.9 L380.8,349.2 L377.8,346.5 L375.4,347.3 L371.8,351.5 L370.3,351.9 L370.1,357.2 L366.9,365.6 L367.0,374.0 L365.1,378.0 L363.1,387.0 L363.0,393.9 L359.9,398.4 L358.4,402.2 L356.6,403.5 L353.5,404.1 L351.9,405.5 L345.7,406.6 L340.9,414.4 L337.1,414.1 L329.3,416.1 L325.7,419.0 L323.2,418.2 L318.3,418.5 L317.3,420.3 L316.4,420.7 L309.3,418.6 L307.5,421.1 L305.8,422.1 L302.0,421.8 L300.3,420.7 L298.2,422.2 L296.9,422.3 L291.7,420.2 L287.1,420.5 L285.2,419.5 L282.2,420.7 L280.4,422.4 L275.5,422.1 L273.1,420.1 L272.5,418.7 L270.2,418.8 L265.1,416.0 L262.6,415.5 L259.2,417.3 L255.9,418.1 L252.8,417.3 L251.1,416.1 L248.2,411.9 L243.7,410.3 L238.2,412.2 L231.2,412.8 L230.5,413.5 L229.9,417.3 L227.9,420.5 L223.3,420.5 L222.6,422.8 L223.1,425.4 L220.9,429.3 L217.9,430.3 L212.4,436.6 L211.6,438.6 L206.8,442.0 L206.6,444.6 L204.8,448.0 L200.9,449.4 L199.1,453.0 L196.3,454.6 L195.2,458.8 L193.3,459.8 L191.5,461.8 L190.8,464.0 L187.2,467.3 L186.7,468.7 L187.0,471.3 L185.4,475.0 L186.3,476.4 L184.0,482.3 L182.7,484.0 L180.4,485.4 L177.7,485.5 L172.2,483.1 L168.6,483.2 L164.6,487.3 L163.9,489.8 L158.4,492.4 L157.4,494.4 L151.6,495.8 L147.2,495.0 L144.1,496.8 L140.6,500.1 L137.3,500.7 L134.2,500.0 L130.7,502.6 L125.9,503.1 L124.4,505.1 L122.3,505.5 L119.6,509.0 L117.6,510.4 L113.3,506.8 L110.4,505.5 L107.5,505.9 L103.8,503.2 L100.2,503.7 L96.2,506.0 L95.9,509.1 L98.2,512.5 L98.3,514.3 L93.5,519.9 L89.0,520.3 L85.4,518.5 L83.0,518.2 L76.7,521.3 L74.6,523.9 L74.9,527.4 L75.4,529.8 L77.6,532.1 L79.3,541.1 L85.4,540.2 L86.4,538.5 L88.8,537.8 L89.4,540.6 L92.5,542.8 L95.1,543.3 L100.8,541.5 L104.7,547.2 L110.4,551.1 L110.4,552.5 L107.2,558.5 L107.7,560.4 L111.9,562.8 L112.8,566.3 L112.1,569.7 L114.7,570.8 L115.2,574.3 L118.2,576.8 L118.0,578.5 L116.0,582.4 L113.7,584.2 L113.3,585.9 L111.7,587.4 L112.7,589.2 L112.1,591.3 L108.8,593.9 L107.5,596.7 L103.9,599.3 L95.2,603.0 L93.4,604.9 L86.3,616.1 L81.5,621.7 L68.5,633.4 L62.3,645.6 L59.8,648.0 L55.4,650.2 L53.3,654.0 L55.1,655.5 L55.9,657.3 L57.8,658.7 L71.5,659.3 L79.3,660.5 L76.8,664.6 L72.6,668.3 L73.9,672.7 L74.6,679.8 L78.7,683.2 L83.6,684.4 L86.8,683.6 L88.3,684.6 L88.2,686.6 L86.2,688.9 L84.5,693.1 L83.6,702.7 L88.9,709.1 L96.8,715.0 L98.3,720.8 L99.8,721.9 L105.6,719.8 L110.0,722.6 L109.6,723.6 L105.7,724.1 L104.9,725.6 L110.6,733.2 L112.0,736.3 L114.2,744.9 L113.9,750.8 L115.4,748.8 L119.3,747.5 L130.4,739.8 L132.6,740.5 L137.4,745.4 L139.3,746.4 L145.8,745.5 L151.5,743.7 L158.7,743.5 L160.8,744.5 L167.1,749.6 L172.9,750.3 L178.5,752.7 L185.9,752.6 L190.0,745.2 L192.1,744.5 L193.8,746.1 L197.4,753.9 L199.0,756.0 L201.0,757.1 L206.6,764.0 L212.5,764.0 L217.6,767.0 L222.4,767.2 L225.1,769.3 L225.7,788.0 L235.6,795.5 L242.0,802.5 L243.1,805.3 L245.1,817.3 L249.0,823.2 L252.0,824.8 L262.2,835.1 L280.1,839.8 L284.8,840.4 L290.6,843.0 L292.5,846.0 L297.9,848.5 L302.8,847.4 L304.3,844.9 L304.7,835.4 L308.1,829.6 L308.2,825.9 L309.6,821.1 L313.9,815.4 L314.0,811.6 L315.3,808.9 L314.7,805.3 L315.9,802.7 L319.6,800.8 L322.0,798.6 L323.4,794.7 L326.9,792.4 L327.1,790.9 L329.9,789.8 L332.8,787.5 L336.2,783.5 L336.8,781.3 L342.6,773.4 L348.7,768.5 L351.0,765.8 L352.2,763.0 L356.2,759.8 L358.0,756.4 L360.0,755.5 L362.7,751.3 L363.6,750.5 L367.3,749.9 L370.3,746.3 L372.8,746.0 L374.5,744.9 L376.2,737.5 L382.9,730.6 L383.4,727.1 L380.1,724.7 L379.3,721.8 L377.3,720.6 L375.6,717.0 L375.9,712.1 L378.2,702.7 L384.2,688.9 L386.0,686.5 L391.5,681.7 L392.4,678.8 L397.4,673.3 L397.3,672.5 L393.9,670.8 L392.6,664.7 L393.6,663.1 L396.6,662.7 L398.1,661.6 L399.5,655.4 L403.4,648.8 L405.6,647.9 L406.0,645.6 L407.8,642.2 L407.5,640.6 L413.6,638.4 L415.8,635.6 L418.0,635.5 L423.0,633.2 L426.8,634.1 L431.2,634.0 L432.8,635.5 L438.7,633.0 L442.2,635.8 L444.4,634.1 L447.3,633.8 L455.6,629.5 L459.8,625.8 L462.8,626.0 L467.9,627.5 L470.3,621.7 L472.1,620.7 L476.7,615.7 L480.7,613.2 L483.8,608.3 L485.8,600.7 L490.2,595.3 L492.5,589.3 L496.0,584.8 L496.5,582.4 L496.0,580.4 L497.1,578.7 L497.5,575.6 L498.6,574.1 L503.1,572.2 L508.6,573.7 L510.0,571.6 L511.4,570.9 L515.7,571.5 L517.7,570.3 L517.9,566.1 L518.9,564.2 L518.8,561.5 L520.1,558.1 L522.1,555.5 L519.9,553.2 L517.9,547.7 L517.6,544.8 L516.5,543.0 L515.5,542.6 L515.6,539.7 L511.5,537.1 L510.9,533.0 L512.0,529.5 L516.9,523.0 L517.3,520.4 L519.2,517.6 L520.3,513.4 L519.7,511.8 L514.5,508.5 L510.1,503.7 L512.0,498.8 L514.4,498.2 L515.4,496.5 L514.2,493.7 L512.8,493.1 L516.3,488.4 L516.3,482.0 L521.0,478.2 L520.6,476.1 L517.1,472.7 L518.1,469.3 L517.0,466.4 L516.7,462.9 L520.0,459.7 L521.4,452.6 L525.2,452.5 L528.6,449.3 L530.7,448.2 L533.8,447.4 L536.4,447.7 L540.1,442.5 L547.4,440.8 L550.1,438.4 L550.8,434.6 L553.2,432.2 L555.1,432.6 L559.1,431.4 L559.7,429.0 L562.0,427.9 L566.3,428.9 L571.0,425.7 L576.2,424.7 L578.9,422.8 L578.9,421.0 L582.0,420.0 L583.7,419.9 L586.4,422.0 L591.1,423.9 L602.1,418.6 L604.2,419.7 L603.2,423.0 L605.6,425.8 L608.1,426.3 L608.7,427.0 L609.1,432.1 L611.9,434.3 L623.3,438.0 L628.2,438.1 L632.1,437.1 L636.8,441.9 L640.3,440.8 L642.2,441.1 L642.8,441.8 L641.5,450.0 L636.8,452.0 L635.3,453.5 L631.8,452.1 L628.6,453.0 L626.2,454.2 L624.4,456.3 L623.3,460.5 L620.9,461.2 L616.5,459.9 L613.6,462.5 L610.7,470.5 L609.6,476.8 L607.9,481.6 L606.3,483.7 L607.0,487.6 L606.3,492.0 L609.0,497.5 L608.7,501.5 L612.0,507.6 L615.6,509.8 L621.4,511.0 L622.3,510.6 L622.9,507.4 L625.7,504.6 L628.8,503.3 L635.8,503.0 L642.8,497.7 L643.9,495.5 L643.3,494.1 L644.7,489.9 L646.4,487.9 L648.3,490.1 L658.2,492.7 L658.6,494.9 L656.5,498.2 L659.1,500.9 Z","lx":256.3,"ly":610.7}];
+const GEN = {"provincias": 3, "dependencias": 31, "poblacion": 204742, "superficie": 15735, "densidad": 13.01, "permanentes": 30, "transitorios": 1, "salas": 3, "salas_det": "", "juzgados": 20, "juz_det": "", "jpl": 8, "jpl_det": "Permanentes 30 · Transitorias 1 · Total 31", "nota": "El distrito judicial comprende las <b>3 provincias</b> de Moquegua, con <b>31 dependencias</b>: 30 permanentes y 1 transitoria (en Ilo). Ilo, con 1,381 km², es la más pequeña y densa (65.61 hab/km²).", "nombre": "Moquegua", "sin_datos": false, "colsing": "Provincia", "colplural": "provincias", "colplural_cap": "Provincias", "colsing_cap": "Provincia", "sel_hint": "Selecciona una provincia en el mapa o en la tabla", "sub_generic": "Provincia del Moquegua", "nota_prov": ""};
+const SIN = GEN.sin_datos === true;                       /* sin desagregado por unidad */
+const num = v => (v === null || v === undefined || (typeof v === "number" && isNaN(v)))
+  ? "—" : v.toLocaleString("es-PE");
+const uni = (v, u) => (v === null || v === undefined) ? "" : u;
+
+const byKey = {};
+PROVS.forEach(p => byKey[p.key] = p);
+
+const RAMP = ["#e9f1fa", "#b9d3ef", "#7faadb", "#4a7fc1", "#26558f", "#123a63"];
+const RAMP_CSS = "linear-gradient(90deg," + RAMP.join(",") + ")";
+
+const IND = {
+  pop:  {label: "Población", key: "pop", short: "hab.", fmt: v => v.toLocaleString("es-PE")},
+  area: {label: "Superficie", key: "area", short: "km²", fmt: v => v.toLocaleString("es-PE")},
+  dens: {label: "Densidad", key: "dens", short: "hab/km²", fmt: v => v.toLocaleString("es-PE", {maximumFractionDigits: 2})},
+  dep:  {label: "Dependencias", key: "dep", short: "dependencias", fmt: v => v.toLocaleString("es-PE")}
+};
+
+let mode = "cat";
+let indicator = "pop";
+let selected = null;
+
+const qs = id => document.getElementById(id);
+const svg = qs("map");
+const viewport = qs("viewport");
+const tip = qs("tip");
+
+/* ---------- utilidades ---------- */
+function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function lerpColor(a, b, t){
+  const ca = hex2rgb(a), cb = hex2rgb(b);
+  const c = ca.map((v, i) => Math.round(v + (cb[i] - v) * t));
+  return "rgb(" + c.join(",") + ")";
+}
+function rampColor(t){
+  t = Math.max(0, Math.min(1, t));
+  const n = RAMP.length - 1, p = t * n, i = Math.min(n - 1, Math.floor(p)), f = p - i;
+  return lerpColor(RAMP[i], RAMP[i+1], f);
+}
+function value(p){ return p[IND[indicator].key]; }
+function norm(p){
+  /* posicion relativa: reparte todo el degradado aunque un valor domine (p.ej. Huaraz) */
+  const vals = PROVS.map(value).slice().sort((a,b) => a - b);
+  const v = value(p);
+  let i = 0;
+  while (i < vals.length && vals[i] < v) i++;
+  return vals.length > 1 ? i / (vals.length - 1) : 0.5;
+}
+function fmt(p){ return IND[indicator].fmt(value(p)) + " " + IND[indicator].short; }
+
+/* ---------- pintado ---------- */
+function luma(css){
+  let r, g, b;
+  const m = css.match(/rgb\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)/);
+  if (m) { r = +m[1]; g = +m[2]; b = +m[3]; }
+  else {
+    const h = String(css).replace("#", "");
+    if (h.length < 6) return 200;
+    r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+  }
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function paint(){
+  const legend = qs("legend");
+  if (SIN) mode = "cat";
+  PROVS.forEach(p => {
+    const el = qs("p-" + p.key.replace(/ /g, "-"));
+    if (!el) return;
+    const fill = (mode === "cat") ? p.color : rampColor(0.06 + norm(p) * 0.94);
+    el.style.fill = fill;
+    const lab = document.querySelector('.plabel[data-label="' + p.key.replace(/ /g, "-") + '"]');
+    if (lab) lab.classList.toggle("dark", luma(fill) > 126);
+  });
+  if (mode === "cat") {
+    legend.classList.add("cat");
+    qs("legendTitle").textContent = GEN.colplural_cap;
+    qs("legendItems").innerHTML = PROVS.map(p =>
+      '<span><i style="background:' + p.color + '"></i>' + p.display + '</span>').join("");
+    qs("legendBar").style.background = "";
+    qs("legendMin").textContent = "";
+    qs("legendMax").textContent = "";
+  } else {
+    legend.classList.remove("cat");
+    const vals = PROVS.map(value);
+    qs("legendTitle").textContent = IND[indicator].label;
+    qs("legendBar").style.background = RAMP_CSS;
+    qs("legendMin").textContent = IND[indicator].fmt(Math.min.apply(null, vals));
+    qs("legendMax").textContent = IND[indicator].fmt(Math.max.apply(null, vals));
+  }
+}
+
+/* ---------- panel ---------- */
+function statCard(k, v, u){
+  return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v +
+    (u ? ' <small>' + u + '</small>' : '') + '</div></div>';
+}
+
+function showOverview(){
+  selected = null;
+  qs("selLayer").innerHTML = "";
+  qs("pTitle").textContent = "Distrito Judicial de " + GEN.nombre;
+  qs("pSub").textContent = GEN.sel_hint;
+  qs("pChip").textContent = GEN.provincias + " " + GEN.colplural;
+  qs("pStats").innerHTML =
+    statCard(GEN.colplural_cap, GEN.provincias, "") +
+    statCard("Dependencias", GEN.dependencias, "") +
+    statCard("Población", GEN.poblacion.toLocaleString("es-PE"), "hab.") +
+    statCard("Superficie", GEN.superficie.toLocaleString("es-PE"), "km²") +
+    statCard("Densidad", GEN.densidad.toLocaleString("es-PE", {maximumFractionDigits: 2}), "hab/km²") +
+    statCard("Permanentes", GEN.permanentes, "de " + GEN.dependencias);
+  if (!SIN) renderBars(null);
+  qs("pNote").innerHTML = GEN.nota;
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.remove("sel"));
+}
+
+function showProvince(key){
+  const p = byKey[key];
+  if (!p) return;
+  selected = key;
+  qs("selLayer").innerHTML = '<path d="' + p.path + '"></path>';
+  qs("pTitle").textContent = p.display;
+  qs("pSub").textContent = p.capital ? (GEN.colsing + " · capital " + p.capital)
+                                     : GEN.sub_generic;
+  qs("pChip").textContent = SIN ? GEN.colsing : (num(p.dep) + " dependencias");
+  qs("pStats").innerHTML =
+    statCard("Población", num(p.pop), uni(p.pop, "hab.")) +
+    statCard("Superficie", num(p.area), uni(p.area, "km²")) +
+    statCard("Densidad", num(p.dens), uni(p.dens, "hab/km²")) +
+    statCard("Dependencias", num(p.dep), uni(p.dep, "total")) +
+    statCard("Permanentes", num(p.perm), "") +
+    statCard("Transitorias", num(p.trans), "");
+  if (!SIN) renderBars(key);
+  qs("pNote").innerHTML = SIN ? GEN.nota_prov :
+    ("Participación en el distrito: <b>" + (p.dep / GEN.dependencias * 100).toFixed(1) + "%</b> de las dependencias y <b>" +
+     (p.pop / GEN.poblacion * 100).toFixed(1) + "%</b> de la población. " +
+     "Densidad: <b>" + p.dens.toLocaleString("es-PE", {maximumFractionDigits: 2}) + " hab/km²</b>");
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.toggle("sel", tr.dataset.key === key));
+}
+
+function renderBars(activeKey){
+  if (!qs("pBars")) return;
+  const max = Math.max.apply(null, PROVS.map(p => p.dep));
+  qs("pBars").innerHTML = PROVS.slice().sort((a,b) => b.dep - a.dep).map(p =>
+    '<div class="barrow"><span class="nm"' + (p.key === activeKey ? ' style="color:#8e2b23;font-weight:650"' : '') + '>' +
+    p.display + '</span><span class="tr"><i style="width:' + (p.dep / max * 100) + '%' +
+    (p.key === activeKey ? ';background:linear-gradient(90deg,#12202f,#3d5165)' : '') + '"></i></span>' +
+    '<span class="vl">' + p.dep + '</span></div>').join("");
+}
+
+function select(key){ showProvince(key); }
+
+/* ---------- tabla ---------- */
+let sortKey = "pop", sortDir = -1;
+function renderTable(){
+  const rows = PROVS.slice().sort((a,b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    if (typeof va === "string" || typeof vb === "string")
+      return String(va).localeCompare(String(vb)) * sortDir;
+    return ((va === null || va === undefined ? -1 : va) -
+            (vb === null || vb === undefined ? -1 : vb)) * sortDir;
+  });
+  qs("tbody").innerHTML = rows.map(p =>
+    '<tr data-key="' + p.key + '"><td>' + p.display + '</td><td>' +
+    (p.capital ? p.capital : "—") + '</td>' +
+    '<td>' + num(p.pop) + '</td>' +
+    '<td>' + num(p.area) + '</td>' +
+    '<td>' + num(p.dens) + '</td>' +
+    '<td>' + num(p.dep) + '</td></tr>').join("");
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    tr.onclick = () => select(tr.dataset.key);
+    tr.onmouseenter = () => hover(tr.dataset.key, true);
+    tr.onmouseleave = () => hover(tr.dataset.key, false);
+    if (tr.dataset.key === selected) tr.classList.add("sel");
+  });
+}
+document.querySelectorAll("th[data-sort]").forEach(th => {
+  th.onclick = () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = (k === "display" || k === "capital") ? 1 : -1; }
+    renderTable();
+  };
+});
+
+/* ---------- hover ---------- */
+function hover(key, on){
+  const p = byKey[key];
+  const lab = document.querySelector('.plabel[data-label="' + key.replace(/ /g, "-") + '"]');
+  if (lab) lab.style.opacity = on ? 0.75 : 1;
+  if (!on) { tip.hidden = true; return; }
+  if (!p) return;
+  tip.hidden = false;
+  tip.innerHTML = '<b>' + p.display + '</b><span>' +
+    (p.capital ? p.capital + ' · ' : '') +
+    (p.pop === null || p.pop === undefined ? 'sin desagregado en el documento'
+      : p.pop.toLocaleString("es-PE") + ' hab. · ' + p.dep + ' dep.') + '</span>';
+}
+
+qs("provs").addEventListener("mousemove", ev => {
+  const t = ev.target;
+  if (!t.classList || !t.classList.contains("prov")) return;
+  hover(t.dataset.key, true);
+  const rect = svg.getBoundingClientRect();
+  tip.style.left = (ev.clientX - rect.left) + "px";
+  tip.style.top = (ev.clientY - rect.top) + "px";
+});
+qs("provs").addEventListener("mouseleave", () => { tip.hidden = true; });
+
+PROVS.forEach(p => {
+  const el = qs("p-" + p.key.replace(/ /g, "-"));
+  if (!el) return;
+  el.addEventListener("click", () => select(p.key));
+  el.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(p.key); }
+  });
+});
+
+/* ---------- modos ---------- */
+qs("mCat").onclick = () => {
+  mode = "cat";
+  qs("mCat").classList.add("on");
+  qs("mVar").classList.remove("on");
+  qs("indicator").disabled = true;
+  qs("indicator").classList.remove("on");
+  paint();
+};
+if (qs("mVar")) qs("mVar").onclick = () => {
+  mode = "var";
+  qs("mVar").classList.add("on");
+  qs("mCat").classList.remove("on");
+  qs("indicator").disabled = false;
+  qs("indicator").classList.add("on");
+  paint();
+};
+if (qs("indicator")) qs("indicator").onchange = ev => { indicator = ev.target.value; paint(); };
+
+/* ---------- zoom ---------- */
+let zoom = {k: 1, x: 0, y: 0};
+const VB = {w: 760, h: 962.7};
+function applyZoom(){
+  viewport.setAttribute("transform", "translate(" + zoom.x + "," + zoom.y + ") scale(" + zoom.k + ")");
+}
+function clamp(){
+  zoom.k = Math.max(1, Math.min(8, zoom.k));
+  const w = VB.w * zoom.k, h = VB.h * zoom.k;
+  zoom.x = Math.min(0, Math.max(VB.w - w, zoom.x));
+  zoom.y = Math.min(0, Math.max(VB.h - h, zoom.y));
+  if (zoom.k === 1) { zoom.x = 0; zoom.y = 0; }
+}
+function zoomAt(cx, cy, f){
+  const k2 = Math.max(1, Math.min(8, zoom.k * f));
+  const g = k2 / zoom.k;
+  zoom.x = cx - (cx - zoom.x) * g;
+  zoom.y = cy - (cy - zoom.y) * g;
+  zoom.k = k2;
+  clamp(); applyZoom();
+}
+function toSvg(ev){
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  const ox = (r.width - VB.w * sc) / 2, oy = (r.height - VB.h * sc) / 2;
+  return {x: (ev.clientX - r.left - ox) / sc, y: (ev.clientY - r.top - oy) / sc};
+}
+svg.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const p = toSvg(ev);
+  zoomAt(p.x, p.y, ev.deltaY < 0 ? 1.16 : 1 / 1.16);
+}, {passive: false});
+
+let drag = null;
+svg.addEventListener("pointerdown", ev => {
+  if (ev.button !== 0) return;
+  drag = {x: ev.clientX, y: ev.clientY, zx: zoom.x, zy: zoom.y};
+  svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  zoom.x = drag.zx + (ev.clientX - drag.x) / sc;
+  zoom.y = drag.zy + (ev.clientY - drag.y) / sc;
+  clamp(); applyZoom(); svg.classList.add("dragging");
+});
+function endDrag(ev){
+  if (!drag) return;
+  if (svg.hasPointerCapture(ev.pointerId)) svg.releasePointerCapture(ev.pointerId);
+  drag = null; svg.classList.remove("dragging");
+}
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+qs("zin").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1.35);
+qs("zout").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1 / 1.35);
+qs("zreset").onclick = () => { zoom = {k: 1, x: 0, y: 0}; applyZoom(); showOverview(); };
+
+/* ---------- inicio ---------- */
+paint();
+renderTable();
+showOverview();
+applyZoom();
+</script>
+<script>try{parent.postMessage({tipo:'mapa-dj-ok'},'*');}catch(e){}</script>
+</body>
+</html>

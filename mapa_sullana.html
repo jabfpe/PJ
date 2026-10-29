@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distrito Judicial de Sullana · Mapa de provincias y dependencias</title>
+<style>
+  :root{
+    --ink:#12202f; --ink2:#3d5165; --muted:#6b7c8d; --line:#dfe6ee;
+    --bg:#eef2f7; --card:#ffffff; --red:#8e2b23; --red2:#c0392b; --gold:#b98a2f;
+    --blue:#1f4e79;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:
+      radial-gradient(900px 500px at 8% -10%, #e3ecf7 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #f6ecea 0%, transparent 55%),
+      var(--bg);
+    min-height:100vh; padding:22px;
+  }
+  .app{max-width:1500px;margin:0 auto}
+
+  /* ---------- cabecera ---------- */
+  .hero{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:16px}
+  .hero .titles{min-width:280px}
+  .eyebrow{font-size:.66rem;letter-spacing:2.2px;text-transform:uppercase;color:var(--red);
+    font-weight:700;margin-bottom:7px}
+  .hero h1{font-size:1.72rem;line-height:1.12;letter-spacing:-.2px;font-weight:700}
+  .hero h1 span{color:var(--red)}
+  .hero p{font-size:.8rem;color:var(--muted);margin-top:6px}
+  .kpis{margin-left:auto;display:grid;grid-template-columns:repeat(5,minmax(96px,1fr));gap:9px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:10px 13px;
+    box-shadow:0 8px 22px rgba(24,50,80,.06)}
+  .kpi .k{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .kpi .v{font-size:1.16rem;font-weight:700;margin-top:3px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+  .kpi .v small{font-size:.6rem;font-weight:600;color:var(--muted);margin-left:2px}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+  main.wide{grid-template-columns:minmax(0,1fr)}
+  main.wide .side{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);
+    gap:16px;align-items:start}
+  .side{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 14px 34px rgba(24,50,80,.08);overflow:hidden}
+  .map-card{display:flex;flex-direction:column;position:relative}
+  .card-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);
+    flex-wrap:wrap}
+  .card-head h2{font-size:.86rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--ink2)}
+  .modes{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .modes button,.modes select{font:inherit;font-size:.72rem;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);padding:6px 10px;border-radius:9px;cursor:pointer;transition:.15s}
+  .modes button:hover{border-color:#c3d2e2;background:#fff}
+  .modes button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .modes select{display:none}
+  .modes select.on{display:block}
+  .modes select:disabled{opacity:.45}
+
+  .map-wrap{position:relative;flex:1;display:flex;min-height:0}
+  svg#map{display:block;width:100%;height:100%;min-height:600px;max-height:76vh;
+    touch-action:none;cursor:grab;user-select:none;padding:8px 0}
+  svg#map.dragging{cursor:grabbing}
+  .prov{stroke:#ffffff;stroke-width:2.6;stroke-linejoin:round;cursor:pointer;outline:none;
+    transition:filter .18s, stroke .18s, opacity .2s}
+  .prov:hover{stroke:#12202f;stroke-width:2.6;filter:drop-shadow(0 6px 14px rgba(20,40,70,.35))}
+  .prov:focus-visible{stroke:#12202f;stroke-width:3}
+  .prov.dim{opacity:.35}
+  #selLayer path{fill:none;stroke:#12202f;stroke-width:7;stroke-linejoin:round;pointer-events:none}
+  #selLayer path{filter:drop-shadow(0 3px 8px rgba(10,25,45,.45))}
+  .plabel{font-size:18px;font-weight:700;text-anchor:middle;pointer-events:none;
+    fill:#ffffff;stroke:rgba(10,20,30,.6);stroke-width:var(--sw,1.4px);paint-order:stroke}
+  .plabel.dark{fill:#16222f;stroke:rgba(255,255,255,.9);
+    stroke-width:calc(var(--sw,1.4px) * .45)}
+  .pleader{stroke:#aebbca;stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+  .map-tools{display:flex;gap:6px;margin-left:6px}
+  .map-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:#f7f9fc;color:var(--ink2);font-size:.95rem;cursor:pointer;
+    display:grid;place-items:center;transition:.15s}
+  .map-tools button:hover{background:#fff;border-color:#c3d2e2}
+  .legend{border-top:1px solid var(--line);padding:10px 16px;background:#fbfcfe;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .legend .t{font-size:.58rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .legend .bar{height:8px;border-radius:5px;flex:1;min-width:120px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+  .legend .r{display:flex;justify-content:space-between;font-size:.64rem;color:var(--ink2);
+    gap:10px;white-space:nowrap}
+  .legend.cat .bar,.legend.cat .r{display:none}
+  .legend .items{display:none;flex-wrap:wrap;gap:4px 14px;font-size:.64rem;color:var(--ink2)}
+  .legend.cat .items{display:flex}
+  .legend .items i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;
+    vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+  .tooltip{position:absolute;z-index:9;pointer-events:none;background:#12202f;color:#fff;
+    border-radius:9px;padding:7px 10px;transform:translate(-50%,-120%);font-size:.74rem;
+    box-shadow:0 10px 24px rgba(10,25,45,.4);white-space:nowrap}
+  .tooltip b{display:block;font-size:.78rem;margin-bottom:1px}
+  .tooltip span{color:#b9cbe0;font-size:.68rem}
+
+  /* ---------- panel ---------- */
+  .panel{padding:16px;display:flex;flex-direction:column;gap:13px}
+  .panel-top{display:flex;align-items:flex-start;gap:10px}
+  .panel-top h3{font-size:1.3rem;letter-spacing:-.2px;line-height:1.1}
+  .panel-top .sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+  .chip{margin-left:auto;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;
+    padding:5px 9px;border-radius:20px;background:#f1f5fa;color:var(--ink2);border:1px solid var(--line);
+    white-space:nowrap}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stat{background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:9px 11px}
+  .stat .k{font-size:.57rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .stat .v{font-size:1rem;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+  .stat .v small{font-size:.62rem;font-weight:600;color:var(--muted);margin-left:2px}
+  .sec{font-size:.6rem;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);
+    display:flex;align-items:center;gap:8px}
+  .sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .bars{display:flex;flex-direction:column;gap:7px}
+  .barrow{display:grid;grid-template-columns:132px 1fr 34px;gap:8px;align-items:center;font-size:.72rem}
+  .barrow .nm{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barrow .tr{height:8px;background:#eef2f7;border-radius:5px;overflow:hidden}
+  .barrow .tr i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#c0392b,#8e2b23)}
+  .barrow .vl{text-align:right;color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  .note{font-size:.68rem;line-height:1.55;color:var(--muted)}
+  .note b{color:var(--ink2)}
+
+  /* ---------- organos ---------- */
+  .organs{display:flex;flex-direction:column;gap:8px}
+  .organ{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;
+    gap:0 12px;background:#f8fafd;border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .organ .n{grid-row:span 2;font-size:1.5rem;font-weight:700;letter-spacing:-.6px;color:var(--red);
+    line-height:1.1;align-self:center;text-align:center}
+  .organ .lbl{font-size:.62rem;letter-spacing:.9px;text-transform:uppercase;color:var(--muted)}
+  .organ .d{font-size:.72rem;color:var(--ink2);margin-top:2px}
+
+  .table-card{overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:.76rem;min-width:720px}
+  thead th{font-size:.6rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);
+    text-align:right;padding:11px 14px;border-bottom:1px solid var(--line);background:#f7f9fc;
+    white-space:nowrap;cursor:pointer;user-select:none}
+  thead th:first-child,thead th:nth-child(2){text-align:left}
+  thead th:hover{color:var(--ink)}
+  tbody td{padding:9px 14px;border-bottom:1px solid #eef2f7;text-align:right;
+    font-variant-numeric:tabular-nums;color:var(--ink2)}
+  tbody td:first-child{text-align:left;font-weight:650;color:var(--ink)}
+  tbody td:nth-child(2){text-align:left;color:var(--muted)}
+  tbody tr{cursor:pointer;transition:.12s}
+  tbody tr:hover{background:#f7fafd}
+  tbody tr.sel{background:#fdf3f1}
+  tbody tr.sel td:first-child{color:var(--red)}
+  tfoot td{padding:10px 14px;font-weight:700;border-top:1px solid var(--line);text-align:right;
+    background:#f7f9fc;font-variant-numeric:tabular-nums}
+  tfoot td:first-child{text-align:left}
+  tfoot td:nth-child(2){text-align:left;color:var(--muted);font-weight:600}
+
+  footer{margin-top:16px;font-size:.66rem;color:var(--muted);text-align:center;line-height:1.8}
+
+  @media (max-width:1040px){
+    main{grid-template-columns:1fr}
+    .kpis{margin-left:0;width:100%;grid-template-columns:repeat(3,1fr)}
+    .organs{grid-template-columns:1fr}
+    svg#map{max-height:66vh}
+  }
+  @media (max-width:560px){
+    body{padding:12px}
+    .hero h1{font-size:1.3rem}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .panel{padding:13px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <div class="titles">
+      <div class="eyebrow">Poder Judicial del Perú · Dependencias JUN 2026</div>
+      <h1>Distrito Judicial de <span>Sullana</span></h1>
+      <p>Las tres provincias del ámbito judicial y sus dependencias</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Provincias</div><div class="v">3</div></div>
+      <div class="kpi"><div class="k">Dependencias</div><div class="v">43</div></div>
+      <div class="kpi"><div class="k">Población</div><div class="v">601,232</div></div>
+      <div class="kpi"><div class="k">Superficie</div><div class="v">11,903 <small>km²</small></div></div>
+      <div class="kpi"><div class="k">Densidad</div><div class="v">50.51 <small>hab/km²</small></div></div>
+    </div>
+  </header>
+
+  <main class="wide">
+    <section class="card map-card">
+      <div class="card-head">
+        <h2>Provincias del distrito judicial</h2>
+        <div class="modes">
+          <button id="mCat" class="on">Colores del mapa</button>
+          <button id="mVar">Ver por indicador</button>
+          <select id="indicator" disabled>
+            <option value="pop">Población</option>
+            <option value="area">Superficie</option>
+            <option value="dens">Densidad</option>
+            <option value="dep">Dependencias</option>
+          </select>
+        </div>
+        <div class="map-tools">
+          <button id="zin" title="Acercar" aria-label="Acercar">+</button>
+          <button id="zout" title="Alejar" aria-label="Alejar">−</button>
+          <button id="zreset" title="Vista completa" aria-label="Vista completa">⤢</button>
+        </div>
+      </div>
+      <div class="map-wrap">
+      <svg id="map" viewBox="0 0 760 498.3" preserveAspectRatio="xMidYMid meet" role="img"
+           aria-label="Mapa de provincias del Distrito Judicial de Sullana">
+        <defs>
+          <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0d2135" flood-opacity=".35"/>
+          </filter>
+        </defs>
+        <g id="viewport">
+          <g id="provs"><path class="prov" id="p-Ayabaca" d="M730.0,302.1 L728.8,301.1 L727.5,299.0 L722.4,286.4 L721.6,283.2 L717.1,272.4 L716.1,271.2 L715.1,267.9 L712.6,264.2 L708.5,259.6 L707.2,256.6 L705.9,255.0 L705.3,253.2 L705.5,250.9 L704.8,248.8 L704.7,245.9 L703.9,244.1 L704.2,241.9 L702.9,237.9 L703.2,236.7 L702.8,235.5 L700.3,231.8 L694.2,226.6 L693.3,214.5 L691.7,209.9 L694.2,208.2 L697.3,207.5 L697.9,205.6 L695.8,199.3 L695.2,194.9 L693.8,191.8 L690.7,188.7 L689.4,188.6 L687.7,187.6 L684.6,187.7 L683.3,189.2 L682.2,189.4 L682.5,190.6 L681.0,190.4 L679.7,191.0 L677.4,190.4 L675.4,190.7 L674.2,190.3 L673.7,188.3 L671.0,186.1 L669.5,185.6 L667.1,186.2 L666.8,183.9 L665.8,184.4 L665.2,183.9 L664.9,181.4 L663.2,181.8 L662.1,181.3 L661.2,180.1 L660.3,177.6 L660.7,175.5 L658.3,174.4 L657.4,172.3 L656.4,171.5 L656.2,169.7 L654.3,169.0 L654.8,167.2 L653.5,166.3 L653.3,165.2 L650.7,165.5 L649.4,164.4 L649.8,163.0 L648.2,162.8 L647.5,161.3 L643.9,159.0 L641.9,158.4 L640.9,158.8 L639.2,158.4 L638.1,156.9 L636.2,157.7 L633.9,157.1 L631.7,159.6 L629.0,160.3 L626.9,162.4 L626.1,162.2 L624.8,162.7 L624.2,162.1 L622.0,164.1 L621.4,166.0 L617.0,168.6 L615.5,170.4 L612.6,170.6 L610.9,169.8 L608.4,170.1 L600.1,174.8 L598.3,174.7 L594.6,176.5 L589.4,176.8 L585.2,178.4 L583.1,178.3 L582.5,177.1 L581.5,176.8 L577.0,177.8 L575.7,176.7 L575.4,175.5 L574.3,175.3 L573.1,173.7 L571.1,172.4 L569.7,170.2 L568.8,170.2 L568.3,169.4 L567.3,169.3 L564.7,165.1 L562.5,163.4 L561.8,160.0 L562.2,157.3 L561.0,156.4 L560.3,154.9 L559.1,154.2 L558.6,152.0 L556.2,149.6 L552.0,148.6 L548.5,145.3 L545.4,144.2 L544.3,142.6 L542.2,142.1 L538.6,139.5 L534.8,142.6 L533.1,142.5 L531.6,143.6 L527.8,142.9 L527.0,141.5 L526.0,141.6 L523.9,143.0 L522.8,142.8 L522.0,141.5 L519.7,140.2 L518.1,137.8 L516.1,137.0 L513.6,137.7 L512.5,137.5 L510.8,135.8 L509.3,135.5 L506.3,133.3 L505.5,130.9 L504.5,130.4 L504.4,129.2 L502.0,128.6 L498.7,126.1 L497.0,126.2 L496.6,124.8 L495.4,123.8 L495.0,121.5 L493.3,121.1 L492.3,120.0 L490.7,119.6 L489.9,118.7 L489.7,116.2 L488.1,115.1 L488.2,113.9 L487.3,112.3 L483.4,111.9 L482.6,110.9 L479.3,109.2 L476.3,108.8 L476.3,108.2 L475.2,107.8 L474.5,106.4 L472.8,106.2 L471.8,105.3 L470.4,106.0 L470.8,107.3 L470.3,107.9 L468.5,107.5 L467.2,106.6 L466.3,107.0 L465.0,106.4 L460.8,107.2 L459.6,106.2 L461.2,104.5 L460.3,103.2 L459.3,103.8 L457.7,103.5 L455.3,107.5 L454.2,108.3 L453.4,110.1 L449.6,108.8 L449.4,107.4 L450.2,105.5 L450.0,104.9 L448.0,104.6 L446.6,106.9 L444.8,107.7 L444.5,108.4 L445.0,109.9 L444.4,111.7 L443.7,112.3 L443.5,114.2 L442.1,117.3 L442.8,119.7 L442.0,121.3 L436.4,121.7 L435.3,122.6 L436.2,123.5 L437.7,123.9 L439.1,125.3 L438.6,126.9 L437.7,127.0 L436.5,126.1 L434.4,127.2 L434.0,127.6 L434.2,128.6 L433.2,130.0 L432.2,129.3 L431.9,128.1 L430.7,127.9 L430.5,130.2 L431.1,132.2 L430.5,133.0 L429.4,133.2 L429.0,133.8 L429.1,134.3 L430.0,134.7 L429.9,136.8 L428.2,137.3 L427.2,135.1 L425.8,134.9 L424.8,140.1 L420.2,141.6 L419.6,145.2 L416.3,145.4 L414.9,148.6 L413.6,149.0 L410.5,146.3 L409.5,146.3 L406.4,149.2 L404.0,153.2 L402.8,153.5 L403.6,154.7 L403.6,155.7 L404.8,156.8 L406.1,156.0 L407.0,154.1 L408.1,154.5 L407.9,155.9 L409.3,157.8 L411.2,158.8 L411.8,158.4 L412.2,156.6 L414.1,155.4 L416.1,155.6 L417.2,157.6 L419.2,158.1 L419.6,159.2 L421.7,159.0 L422.5,160.4 L423.2,159.7 L422.3,157.7 L424.4,158.2 L425.1,159.9 L426.8,160.4 L427.9,161.4 L427.2,163.3 L427.5,164.4 L428.5,164.4 L430.6,166.4 L431.9,166.4 L432.9,167.7 L432.1,169.2 L429.0,169.9 L428.2,172.3 L429.0,172.4 L428.9,172.9 L429.5,173.5 L430.4,172.9 L430.6,174.3 L432.1,175.4 L431.6,176.3 L431.9,177.1 L431.2,177.9 L432.3,180.3 L431.6,182.2 L432.7,183.2 L432.2,184.1 L431.3,183.5 L430.7,184.8 L428.6,186.2 L430.0,189.9 L429.3,192.4 L428.8,192.7 L429.6,194.4 L430.5,194.4 L430.4,195.0 L431.2,195.4 L430.9,196.2 L431.9,196.6 L431.8,197.6 L434.3,197.5 L433.7,198.8 L434.3,199.6 L434.0,200.7 L435.9,203.9 L435.8,205.0 L436.7,205.3 L436.3,205.7 L436.7,207.7 L434.8,211.4 L430.3,214.4 L429.6,215.5 L431.3,216.5 L434.0,219.4 L436.8,221.0 L437.6,219.9 L442.4,218.4 L445.3,218.8 L452.7,217.8 L454.1,218.7 L455.4,222.1 L455.4,224.1 L457.8,229.2 L457.5,230.5 L458.7,232.7 L460.7,233.9 L461.5,235.3 L461.5,236.6 L463.2,237.5 L464.2,239.4 L464.0,242.5 L465.2,243.9 L467.9,244.3 L468.7,245.3 L469.7,243.4 L471.3,242.9 L471.6,241.1 L472.9,240.3 L477.7,239.3 L480.8,239.3 L482.5,239.9 L488.1,238.6 L492.2,238.7 L495.9,237.2 L499.0,239.2 L501.1,239.6 L502.1,241.5 L505.7,244.1 L506.5,245.7 L506.1,249.9 L505.2,251.7 L502.4,253.4 L500.2,260.5 L497.7,262.2 L495.7,263.0 L493.5,263.2 L491.5,264.6 L489.5,264.2 L487.2,265.4 L480.7,265.2 L475.7,269.0 L474.8,270.5 L474.7,272.4 L477.2,275.2 L478.4,275.2 L479.0,276.6 L480.0,277.1 L480.9,280.9 L481.8,282.0 L481.0,284.2 L478.8,287.6 L475.3,289.5 L468.1,291.5 L469.8,294.7 L472.4,297.6 L471.4,300.2 L471.9,302.5 L474.5,303.4 L475.8,305.2 L474.2,308.1 L474.3,309.4 L475.4,310.6 L474.8,312.4 L474.0,313.6 L467.2,319.5 L465.5,322.8 L466.1,324.1 L469.2,326.3 L470.0,328.2 L469.6,330.4 L471.0,333.7 L472.5,335.6 L472.5,336.4 L474.2,337.4 L477.2,337.5 L481.1,340.9 L480.8,343.2 L479.4,345.1 L476.9,351.0 L477.9,354.8 L478.3,360.9 L479.4,363.4 L481.2,364.5 L483.9,364.5 L486.3,366.6 L489.3,366.3 L491.6,367.3 L492.1,368.1 L494.1,369.0 L495.5,371.7 L498.0,371.0 L501.0,368.8 L505.8,369.9 L509.2,367.8 L510.7,368.3 L512.4,371.0 L513.3,371.6 L519.4,371.4 L520.7,372.1 L522.4,374.3 L524.0,375.4 L525.1,375.4 L526.4,374.5 L531.0,373.5 L533.5,370.8 L536.5,369.1 L540.7,369.9 L543.2,368.4 L545.4,365.4 L545.8,359.8 L548.2,357.8 L550.1,358.1 L551.1,356.7 L553.3,356.6 L555.6,354.3 L558.6,353.3 L559.1,352.0 L558.3,350.2 L558.5,349.5 L560.3,347.2 L560.6,345.7 L562.6,345.3 L563.3,346.1 L564.1,349.3 L563.8,352.1 L565.7,352.2 L567.8,353.3 L567.6,355.6 L570.5,360.0 L572.8,359.0 L574.1,359.1 L576.1,360.0 L577.2,361.2 L579.4,361.3 L585.8,358.8 L587.6,360.9 L591.1,362.9 L592.0,365.0 L594.9,368.8 L598.1,371.1 L602.6,370.9 L606.4,368.5 L607.2,370.1 L607.4,371.8 L606.5,378.7 L608.7,382.7 L610.0,382.5 L612.9,383.9 L614.1,385.5 L616.6,386.8 L620.4,391.6 L622.7,392.6 L624.8,395.2 L626.9,396.7 L630.6,397.6 L633.6,396.4 L635.3,394.8 L636.3,394.9 L635.3,398.3 L635.7,399.4 L638.6,400.9 L640.2,400.8 L648.4,397.5 L653.9,392.7 L654.3,390.9 L653.9,388.4 L655.5,386.2 L655.6,382.6 L661.4,384.0 L661.6,387.3 L662.7,388.3 L665.9,387.3 L668.3,389.2 L669.8,389.6 L674.1,389.4 L675.2,391.0 L678.0,390.8 L678.7,391.4 L679.2,393.0 L681.2,392.2 L683.4,392.8 L691.1,401.3 L694.4,402.2 L692.6,401.1 L691.2,397.4 L692.7,395.6 L692.7,393.0 L693.8,391.6 L695.7,390.6 L696.7,388.2 L697.3,384.0 L699.1,381.5 L698.8,378.9 L697.2,375.6 L696.4,371.1 L699.2,365.7 L700.6,360.7 L702.5,358.2 L701.9,352.5 L703.1,350.8 L706.4,348.0 L707.5,345.7 L707.6,335.9 L708.9,334.7 L715.7,334.7 L717.3,334.0 L722.6,328.7 L727.0,322.3 L728.4,318.9 L729.6,310.7 L728.3,307.2 L728.5,305.1 L730.0,302.1 Z" data-key="Ayabaca" tabindex="0" role="button" aria-label="Provincia de Ayabaca"></path>
+<path class="prov" id="p-Sullana" d="M404.8,156.8 L403.5,158.6 L400.3,159.3 L399.9,161.0 L398.1,162.5 L395.9,163.5 L394.1,163.5 L391.0,167.0 L388.7,168.2 L388.2,169.2 L386.0,169.4 L382.5,171.1 L381.0,171.1 L378.8,173.8 L375.3,173.5 L372.1,172.6 L370.8,174.8 L368.9,176.0 L366.1,174.1 L366.4,172.1 L364.3,170.1 L362.7,169.8 L362.5,169.0 L361.1,168.0 L360.0,168.0 L359.1,166.5 L358.4,166.3 L358.0,166.7 L358.0,169.0 L355.9,167.6 L356.1,166.2 L350.8,165.1 L349.1,161.6 L347.3,162.0 L347.8,160.8 L347.2,160.4 L348.6,158.8 L347.1,158.3 L347.4,156.6 L346.3,156.0 L347.0,155.4 L346.5,154.5 L346.9,153.6 L346.7,152.1 L347.4,151.8 L345.6,147.5 L347.9,145.9 L346.2,144.0 L346.8,142.6 L347.3,142.4 L347.8,143.3 L348.5,142.5 L347.2,141.9 L345.6,140.2 L346.1,137.8 L348.7,134.2 L348.6,133.1 L352.4,130.7 L353.5,127.4 L354.5,127.0 L354.3,124.1 L356.6,119.8 L358.1,119.0 L360.7,114.9 L362.4,113.8 L363.4,112.0 L365.5,110.7 L366.0,109.5 L368.5,108.1 L368.4,107.0 L369.6,107.1 L370.5,105.6 L372.3,105.4 L376.9,102.1 L376.9,97.7 L380.4,94.9 L381.2,94.9 L382.2,93.6 L382.3,91.5 L385.8,87.9 L390.8,80.7 L392.7,78.6 L395.1,77.3 L397.7,74.4 L396.4,71.7 L395.1,73.7 L392.1,75.8 L390.6,77.6 L388.4,77.0 L386.8,75.4 L384.4,76.9 L384.0,78.9 L383.3,78.9 L382.2,79.8 L377.8,74.7 L377.7,72.4 L376.7,71.4 L375.3,71.5 L372.9,74.1 L371.5,75.0 L369.3,73.2 L361.7,79.0 L361.1,77.8 L360.1,77.6 L359.2,76.3 L358.3,73.5 L353.8,70.9 L352.7,70.9 L351.0,71.8 L349.2,73.3 L348.8,74.9 L347.3,75.7 L347.5,47.0 L347.1,46.6 L348.1,43.8 L347.5,43.6 L346.2,45.3 L344.2,45.1 L342.1,46.7 L340.9,46.2 L340.8,45.5 L342.2,43.5 L342.0,41.8 L338.0,37.5 L337.2,34.9 L335.6,34.0 L335.7,32.0 L333.6,30.0 L333.2,30.6 L331.8,30.6 L329.4,31.7 L328.9,33.0 L327.4,32.7 L325.0,33.8 L324.0,35.4 L322.8,35.4 L321.9,37.0 L320.8,37.9 L319.3,41.2 L319.3,43.8 L317.8,43.5 L317.1,44.0 L316.1,46.4 L314.8,48.1 L315.1,49.1 L314.3,50.9 L312.5,51.2 L312.5,52.8 L311.9,53.3 L311.3,55.0 L310.1,55.6 L310.1,57.3 L307.7,58.2 L307.7,59.3 L308.5,60.2 L308.2,60.8 L306.5,60.6 L306.9,63.8 L302.3,65.9 L302.4,68.0 L301.1,69.2 L301.2,70.7 L299.9,70.3 L297.6,72.0 L297.7,73.2 L296.8,73.5 L296.2,74.6 L296.4,77.6 L292.2,77.1 L291.3,76.2 L291.3,78.3 L290.6,78.0 L289.7,78.5 L288.8,81.5 L285.3,83.1 L284.6,83.9 L283.9,83.2 L281.1,82.5 L280.1,83.2 L279.5,82.6 L276.6,83.0 L275.9,81.9 L272.8,80.5 L271.2,78.8 L268.9,77.8 L266.5,76.0 L265.7,74.6 L264.9,74.8 L264.1,72.8 L260.7,71.1 L258.6,68.7 L256.9,67.9 L254.9,68.7 L253.6,68.3 L252.4,68.6 L252.4,69.3 L251.5,70.0 L249.7,70.2 L248.8,68.7 L248.3,68.9 L246.6,67.5 L246.5,65.6 L245.5,65.6 L244.1,64.4 L243.7,64.5 L243.8,65.4 L241.5,65.7 L240.6,66.6 L239.2,64.1 L237.3,65.0 L235.7,64.9 L234.0,63.2 L233.6,63.7 L232.7,63.1 L231.3,63.0 L228.9,63.8 L227.8,63.5 L227.0,63.9 L227.3,65.1 L226.7,65.3 L225.7,64.6 L224.2,65.2 L220.9,64.6 L219.5,63.6 L212.0,67.1 L210.1,67.1 L207.2,68.5 L203.8,68.2 L202.4,69.1 L200.0,68.5 L198.5,69.0 L197.0,68.3 L195.5,69.4 L191.1,69.7 L189.7,69.3 L188.6,67.5 L185.5,66.7 L184.3,64.9 L178.8,63.3 L177.3,61.7 L176.0,61.3 L174.4,61.1 L173.2,63.9 L171.4,64.5 L171.2,68.5 L174.2,69.1 L173.6,71.5 L174.2,72.6 L175.8,73.8 L176.0,75.8 L181.4,81.2 L180.9,82.5 L174.8,89.1 L175.0,90.4 L174.1,91.9 L173.7,93.8 L174.1,96.0 L172.7,99.0 L172.5,101.8 L171.1,104.5 L171.2,106.9 L172.6,108.8 L176.6,111.8 L179.1,115.1 L181.5,113.6 L182.7,111.4 L184.9,112.5 L187.3,115.4 L193.7,114.1 L196.4,114.6 L196.6,116.5 L195.1,118.5 L195.8,119.5 L195.8,121.4 L192.8,123.7 L192.3,124.6 L192.4,125.8 L191.7,126.9 L193.4,131.0 L192.8,132.0 L193.9,132.8 L196.7,133.2 L197.1,134.1 L199.1,134.8 L199.7,135.6 L199.7,136.6 L202.5,139.0 L204.1,138.6 L206.6,138.8 L208.9,139.9 L210.4,139.1 L208.8,143.5 L206.3,143.9 L204.5,145.6 L203.9,146.9 L202.2,148.1 L204.3,153.0 L202.6,154.4 L201.7,156.4 L199.6,157.8 L201.0,161.2 L200.5,162.5 L202.5,165.2 L200.7,165.3 L199.0,166.5 L196.4,166.6 L194.6,168.3 L194.4,169.2 L195.3,170.7 L192.9,172.5 L193.0,174.6 L194.5,176.5 L194.0,177.5 L190.9,178.3 L189.9,179.6 L187.6,180.7 L177.6,188.4 L178.5,190.8 L176.7,192.9 L176.7,194.0 L177.6,195.8 L177.5,197.2 L178.9,198.4 L179.8,200.0 L181.4,199.2 L183.5,199.3 L184.1,201.8 L185.9,203.2 L185.8,204.6 L186.6,205.4 L187.0,208.3 L188.6,208.7 L189.7,209.9 L188.7,211.8 L188.7,214.3 L187.8,215.6 L182.8,217.6 L179.6,222.8 L178.2,223.0 L175.5,222.4 L174.4,223.2 L171.3,224.0 L173.9,229.1 L176.5,229.3 L178.7,234.4 L185.7,243.8 L187.5,244.4 L189.7,246.7 L192.4,247.7 L193.0,248.6 L194.5,249.2 L194.9,250.6 L196.6,252.4 L198.4,257.2 L198.2,258.0 L199.6,259.9 L200.7,263.8 L201.7,265.1 L203.3,271.0 L159.9,279.4 L173.1,291.4 L173.4,295.4 L172.3,299.5 L170.4,301.7 L169.6,303.7 L170.0,306.4 L165.2,312.5 L166.2,313.2 L166.4,314.4 L167.8,314.8 L170.4,314.5 L170.8,314.0 L170.7,316.1 L171.3,317.6 L170.8,319.3 L172.5,321.8 L173.8,321.9 L175.8,323.5 L178.5,323.1 L181.3,323.9 L184.0,323.8 L191.2,323.0 L194.6,323.6 L196.6,325.4 L199.9,324.4 L200.5,325.8 L200.1,328.0 L201.3,329.2 L202.5,329.0 L205.7,326.7 L208.7,326.6 L210.4,327.4 L211.9,332.9 L211.4,334.8 L211.5,337.9 L210.4,340.5 L208.2,341.3 L207.3,340.9 L202.3,344.2 L203.3,395.8 L199.2,463.8 L202.9,468.3 L205.1,466.0 L206.3,463.2 L206.5,460.5 L208.1,458.1 L207.6,451.8 L209.7,447.5 L210.2,444.2 L212.8,442.6 L212.8,440.6 L218.8,442.5 L221.7,436.5 L224.7,432.6 L225.9,429.0 L229.4,425.3 L230.8,419.9 L232.3,416.9 L235.4,412.4 L241.8,406.9 L256.7,368.5 L272.3,370.6 L272.1,369.8 L275.0,364.5 L274.9,362.6 L276.1,359.6 L275.9,356.9 L276.5,354.3 L282.1,353.0 L283.1,348.1 L285.7,343.1 L286.4,340.6 L290.6,336.6 L291.0,332.4 L293.3,330.0 L294.4,328.1 L296.7,328.0 L298.2,327.4 L299.3,327.9 L302.4,325.8 L302.3,322.9 L303.0,320.3 L306.3,319.8 L309.7,317.2 L310.1,316.2 L309.3,312.5 L311.0,311.3 L312.5,306.5 L314.5,304.1 L321.0,299.1 L326.3,298.1 L329.4,300.3 L331.0,300.1 L332.9,301.0 L335.1,300.4 L337.5,299.0 L340.3,299.9 L341.7,300.8 L345.4,301.5 L346.4,300.1 L349.6,299.0 L351.9,298.9 L354.4,300.1 L358.0,300.3 L361.9,297.5 L363.9,293.6 L370.1,292.2 L371.9,289.2 L373.5,289.0 L375.3,289.7 L378.9,290.0 L381.4,288.7 L382.9,286.9 L384.0,287.0 L383.6,284.7 L382.1,284.7 L379.3,281.5 L381.1,279.2 L376.7,277.2 L374.7,274.9 L371.7,272.8 L369.5,268.6 L369.4,266.3 L368.5,265.7 L368.0,263.9 L365.6,262.8 L364.7,261.1 L365.1,260.0 L364.0,259.5 L364.3,257.2 L363.6,257.5 L363.5,256.7 L362.9,256.5 L362.7,253.7 L364.8,253.5 L365.6,250.3 L368.1,246.3 L367.6,244.5 L369.2,241.5 L371.2,240.6 L374.8,240.8 L375.8,239.5 L380.5,238.3 L382.8,238.8 L383.6,238.3 L384.5,232.4 L385.5,231.1 L387.2,230.9 L387.9,227.4 L397.6,224.1 L401.4,220.0 L404.5,218.5 L410.7,217.3 L414.4,213.8 L416.8,213.5 L419.7,211.8 L423.6,213.5 L425.9,212.9 L427.6,213.2 L429.6,215.5 L430.3,214.4 L434.8,211.4 L436.7,207.7 L436.3,205.7 L436.7,205.3 L435.8,205.0 L435.9,203.9 L434.0,200.7 L434.3,199.6 L433.7,198.8 L434.3,197.5 L431.8,197.6 L431.9,196.6 L430.9,196.2 L431.2,195.4 L430.4,195.0 L430.5,194.4 L429.6,194.4 L428.8,192.7 L429.3,192.4 L430.0,189.9 L428.6,186.2 L430.7,184.8 L431.3,183.5 L432.2,184.1 L432.7,183.2 L431.6,182.2 L432.3,180.3 L431.2,177.9 L431.9,177.1 L431.6,176.3 L432.1,175.4 L430.6,174.3 L430.4,172.9 L429.5,173.5 L428.9,172.9 L429.0,172.4 L428.2,172.3 L429.0,169.9 L432.1,169.2 L432.9,167.7 L431.9,166.4 L430.6,166.4 L428.5,164.4 L427.5,164.4 L427.2,163.3 L427.9,161.4 L426.8,160.4 L425.1,159.9 L424.4,158.2 L422.3,157.7 L423.2,159.7 L422.5,160.4 L421.7,159.0 L419.6,159.2 L419.2,158.1 L417.2,157.6 L416.1,155.6 L414.1,155.4 L412.2,156.6 L411.8,158.4 L411.2,158.8 L409.3,157.8 L407.9,155.9 L408.1,154.5 L407.0,154.1 L406.1,156.0 L404.8,156.8 Z" data-key="Sullana" tabindex="0" role="button" aria-label="Provincia de Sullana"></path>
+<path class="prov" id="p-Talara" d="M133.5,31.6 L129.0,38.4 L126.8,38.1 L124.2,40.0 L121.1,40.2 L116.3,43.0 L112.4,46.3 L102.8,62.6 L99.3,64.9 L97.1,64.3 L95.7,64.9 L88.1,75.5 L85.8,77.7 L83.6,79.0 L81.3,79.0 L79.2,80.9 L74.7,82.6 L72.6,84.4 L69.4,88.8 L67.1,90.0 L62.6,90.7 L61.6,91.9 L58.5,97.9 L57.1,99.3 L56.0,107.8 L54.3,112.1 L57.1,118.5 L58.4,125.7 L58.5,128.4 L57.8,130.5 L58.1,133.9 L57.2,136.0 L57.2,143.2 L56.0,146.5 L54.3,147.2 L54.3,149.8 L53.0,152.4 L52.5,156.4 L52.0,157.2 L51.3,156.9 L49.8,161.4 L49.3,161.8 L49.0,161.4 L48.1,163.5 L46.9,164.4 L45.0,164.3 L43.9,163.7 L43.3,165.1 L42.6,165.3 L41.1,167.3 L40.0,166.9 L40.0,168.3 L40.8,169.0 L40.8,171.0 L39.6,171.8 L39.9,172.5 L38.4,173.6 L39.6,176.0 L39.6,177.8 L47.2,191.7 L47.3,193.1 L46.2,193.5 L47.7,196.7 L48.0,198.1 L47.2,199.5 L49.4,206.8 L47.2,208.7 L46.5,208.5 L46.2,207.5 L45.2,208.2 L44.7,212.8 L42.7,215.2 L41.9,218.6 L41.9,224.3 L40.9,225.9 L40.0,230.3 L38.7,232.4 L37.0,239.0 L33.8,242.3 L30.3,242.3 L30.1,243.2 L31.0,245.9 L30.8,246.7 L30.0,247.1 L38.6,257.5 L72.5,295.6 L159.9,279.4 L203.3,271.0 L201.7,265.1 L200.7,263.8 L199.6,259.9 L198.2,258.0 L198.4,257.2 L196.6,252.4 L194.9,250.6 L194.5,249.2 L193.0,248.6 L192.4,247.7 L189.7,246.7 L187.5,244.4 L185.7,243.8 L178.7,234.4 L176.5,229.3 L173.9,229.1 L171.3,224.0 L174.4,223.2 L175.5,222.4 L178.2,223.0 L179.6,222.8 L182.8,217.6 L187.8,215.6 L188.7,214.3 L188.7,211.8 L189.7,209.9 L188.6,208.7 L187.0,208.3 L186.6,205.4 L185.8,204.6 L185.9,203.2 L184.1,201.8 L183.5,199.3 L181.4,199.2 L179.8,200.0 L178.9,198.4 L177.5,197.2 L177.6,195.8 L176.7,194.0 L176.7,192.9 L178.5,190.8 L177.6,188.4 L187.6,180.7 L189.9,179.6 L190.9,178.3 L194.0,177.5 L194.5,176.5 L193.0,174.6 L192.9,172.5 L195.3,170.7 L194.4,169.2 L194.6,168.3 L196.4,166.6 L199.0,166.5 L200.7,165.3 L202.5,165.2 L200.5,162.5 L201.0,161.2 L199.6,157.8 L201.7,156.4 L202.6,154.4 L204.3,153.0 L202.2,148.1 L203.9,146.9 L204.5,145.6 L206.3,143.9 L208.8,143.5 L210.4,139.1 L208.9,139.9 L206.6,138.8 L204.1,138.6 L202.5,139.0 L199.7,136.6 L199.7,135.6 L199.1,134.8 L197.1,134.1 L196.7,133.2 L193.9,132.8 L192.8,132.0 L193.4,131.0 L191.7,126.9 L192.4,125.8 L192.3,124.6 L192.8,123.7 L195.8,121.4 L195.8,119.5 L195.1,118.5 L196.6,116.5 L196.4,114.6 L193.7,114.1 L187.3,115.4 L184.9,112.5 L182.7,111.4 L181.5,113.6 L179.1,115.1 L176.6,111.8 L172.6,108.8 L171.2,106.9 L171.1,104.5 L172.5,101.8 L172.7,99.0 L174.1,96.0 L173.7,93.8 L174.1,91.9 L175.0,90.4 L174.8,89.1 L180.9,82.5 L181.4,81.2 L176.0,75.8 L175.8,73.8 L174.2,72.6 L173.6,71.5 L174.2,69.1 L171.2,68.5 L171.4,64.5 L168.7,60.9 L163.7,63.0 L160.2,62.4 L159.0,61.0 L159.0,60.3 L160.6,58.3 L162.3,53.6 L161.1,51.5 L160.0,50.9 L160.3,49.6 L158.8,45.9 L156.3,46.0 L152.9,42.3 L151.0,42.6 L148.5,40.2 L146.6,40.3 L143.9,41.3 L141.5,40.8 L140.0,38.6 L137.4,37.5 L137.0,36.2 L134.7,33.8 L133.5,31.6 Z" data-key="Talara" tabindex="0" role="button" aria-label="Provincia de Talara"></path></g>
+          <g id="selLayer"></g>
+          <g id="leaders"></g>
+          <g id="labels"><text class="plabel" x="610.3" y="267.7" style="font-size:8.5px;--sw:0.7px" data-label="Ayabaca">Ayabaca</text>
+<text class="plabel" x="280.1" y="220.3" style="font-size:8.5px;--sw:0.7px" data-label="Sullana">Sullana</text>
+<text class="plabel" x="112.8" y="181.0" style="font-size:8.5px;--sw:0.7px" data-label="Talara">Talara</text></g>
+        </g>
+      </svg>
+      <div class="tooltip" id="tip" hidden></div>
+      </div>
+      <div class="legend" id="legend">
+        <div class="t" id="legendTitle">Provincias</div>
+        <div class="items" id="legendItems"></div>
+        <div class="bar" id="legendBar"></div>
+        <div class="r"><span id="legendMin"></span><span id="legendMax"></span></div>
+      </div>
+    </section>
+
+    <div class="side">
+    <aside class="card panel">
+      <div class="panel-top">
+        <div>
+          <h3 id="pTitle">Distrito Judicial de Sullana</h3>
+          <div class="sub" id="pSub">Selecciona una provincia en el mapa o en la tabla</div>
+        </div>
+        <span class="chip" id="pChip">3 provincias</span>
+      </div>
+      <div class="stat-grid" id="pStats"></div>
+      <div class="sec">Dependencias por provincia</div>
+      <div class="bars" id="pBars"></div>
+      <div class="note" id="pNote"></div>
+      <div class="sec">Órganos jurisdiccionales del distrito</div>
+      <div class="organs">
+        <div class="organ">
+          <span class="n">3</span><span class="lbl">Salas superiores</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">30</span><span class="lbl">Juzgados especializados o mixtos</span>
+          <span class="d"></span>
+        </div>
+        <div class="organ">
+          <span class="n">10</span><span class="lbl">Juzgados de paz letrado</span>
+          <span class="d">Permanentes 33 · Transitorias 10 · Total 43</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="card table-card">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="display">Provincia</th>
+            <th data-sort="capital">Capital</th>
+            <th data-sort="pop">Población</th>
+            <th data-sort="area">Superficie (km²)</th>
+            <th data-sort="dens">Densidad</th>
+            <th data-sort="dep">Dependencias</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td><td>3 provincias</td><td>601,232</td><td>11,903</td>
+            <td>50.51</td><td>43</td>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+    </div>
+  </main>
+
+  <footer>
+    Fuente de los datos: «DEPENDENCIAS JUN 2026 Documento_v2» · Distrito Judicial de Sullana (3 provincias, 43 dependencias, población 601,232 hab., superficie 11,903 km²).<br>
+    Geometría: geoBoundaries (PER ADM2, versión simplificada, CC BY 4.0).
+    Documento HTML autónomo, sin conexión a internet.
+  </footer>
+</div>
+
+<script>
+const PROVS = [{"key":"Ayabaca","display":"Ayabaca","capital":"Ayabaca","pop":80465,"area":3680,"dens":21.87,"dep":2,"perm":2,"trans":0,"dark":false,"color":"#8b8f93","fs":8.5,"sw":0.7,"path":"M730.0,302.1 L728.8,301.1 L727.5,299.0 L722.4,286.4 L721.6,283.2 L717.1,272.4 L716.1,271.2 L715.1,267.9 L712.6,264.2 L708.5,259.6 L707.2,256.6 L705.9,255.0 L705.3,253.2 L705.5,250.9 L704.8,248.8 L704.7,245.9 L703.9,244.1 L704.2,241.9 L702.9,237.9 L703.2,236.7 L702.8,235.5 L700.3,231.8 L694.2,226.6 L693.3,214.5 L691.7,209.9 L694.2,208.2 L697.3,207.5 L697.9,205.6 L695.8,199.3 L695.2,194.9 L693.8,191.8 L690.7,188.7 L689.4,188.6 L687.7,187.6 L684.6,187.7 L683.3,189.2 L682.2,189.4 L682.5,190.6 L681.0,190.4 L679.7,191.0 L677.4,190.4 L675.4,190.7 L674.2,190.3 L673.7,188.3 L671.0,186.1 L669.5,185.6 L667.1,186.2 L666.8,183.9 L665.8,184.4 L665.2,183.9 L664.9,181.4 L663.2,181.8 L662.1,181.3 L661.2,180.1 L660.3,177.6 L660.7,175.5 L658.3,174.4 L657.4,172.3 L656.4,171.5 L656.2,169.7 L654.3,169.0 L654.8,167.2 L653.5,166.3 L653.3,165.2 L650.7,165.5 L649.4,164.4 L649.8,163.0 L648.2,162.8 L647.5,161.3 L643.9,159.0 L641.9,158.4 L640.9,158.8 L639.2,158.4 L638.1,156.9 L636.2,157.7 L633.9,157.1 L631.7,159.6 L629.0,160.3 L626.9,162.4 L626.1,162.2 L624.8,162.7 L624.2,162.1 L622.0,164.1 L621.4,166.0 L617.0,168.6 L615.5,170.4 L612.6,170.6 L610.9,169.8 L608.4,170.1 L600.1,174.8 L598.3,174.7 L594.6,176.5 L589.4,176.8 L585.2,178.4 L583.1,178.3 L582.5,177.1 L581.5,176.8 L577.0,177.8 L575.7,176.7 L575.4,175.5 L574.3,175.3 L573.1,173.7 L571.1,172.4 L569.7,170.2 L568.8,170.2 L568.3,169.4 L567.3,169.3 L564.7,165.1 L562.5,163.4 L561.8,160.0 L562.2,157.3 L561.0,156.4 L560.3,154.9 L559.1,154.2 L558.6,152.0 L556.2,149.6 L552.0,148.6 L548.5,145.3 L545.4,144.2 L544.3,142.6 L542.2,142.1 L538.6,139.5 L534.8,142.6 L533.1,142.5 L531.6,143.6 L527.8,142.9 L527.0,141.5 L526.0,141.6 L523.9,143.0 L522.8,142.8 L522.0,141.5 L519.7,140.2 L518.1,137.8 L516.1,137.0 L513.6,137.7 L512.5,137.5 L510.8,135.8 L509.3,135.5 L506.3,133.3 L505.5,130.9 L504.5,130.4 L504.4,129.2 L502.0,128.6 L498.7,126.1 L497.0,126.2 L496.6,124.8 L495.4,123.8 L495.0,121.5 L493.3,121.1 L492.3,120.0 L490.7,119.6 L489.9,118.7 L489.7,116.2 L488.1,115.1 L488.2,113.9 L487.3,112.3 L483.4,111.9 L482.6,110.9 L479.3,109.2 L476.3,108.8 L476.3,108.2 L475.2,107.8 L474.5,106.4 L472.8,106.2 L471.8,105.3 L470.4,106.0 L470.8,107.3 L470.3,107.9 L468.5,107.5 L467.2,106.6 L466.3,107.0 L465.0,106.4 L460.8,107.2 L459.6,106.2 L461.2,104.5 L460.3,103.2 L459.3,103.8 L457.7,103.5 L455.3,107.5 L454.2,108.3 L453.4,110.1 L449.6,108.8 L449.4,107.4 L450.2,105.5 L450.0,104.9 L448.0,104.6 L446.6,106.9 L444.8,107.7 L444.5,108.4 L445.0,109.9 L444.4,111.7 L443.7,112.3 L443.5,114.2 L442.1,117.3 L442.8,119.7 L442.0,121.3 L436.4,121.7 L435.3,122.6 L436.2,123.5 L437.7,123.9 L439.1,125.3 L438.6,126.9 L437.7,127.0 L436.5,126.1 L434.4,127.2 L434.0,127.6 L434.2,128.6 L433.2,130.0 L432.2,129.3 L431.9,128.1 L430.7,127.9 L430.5,130.2 L431.1,132.2 L430.5,133.0 L429.4,133.2 L429.0,133.8 L429.1,134.3 L430.0,134.7 L429.9,136.8 L428.2,137.3 L427.2,135.1 L425.8,134.9 L424.8,140.1 L420.2,141.6 L419.6,145.2 L416.3,145.4 L414.9,148.6 L413.6,149.0 L410.5,146.3 L409.5,146.3 L406.4,149.2 L404.0,153.2 L402.8,153.5 L403.6,154.7 L403.6,155.7 L404.8,156.8 L406.1,156.0 L407.0,154.1 L408.1,154.5 L407.9,155.9 L409.3,157.8 L411.2,158.8 L411.8,158.4 L412.2,156.6 L414.1,155.4 L416.1,155.6 L417.2,157.6 L419.2,158.1 L419.6,159.2 L421.7,159.0 L422.5,160.4 L423.2,159.7 L422.3,157.7 L424.4,158.2 L425.1,159.9 L426.8,160.4 L427.9,161.4 L427.2,163.3 L427.5,164.4 L428.5,164.4 L430.6,166.4 L431.9,166.4 L432.9,167.7 L432.1,169.2 L429.0,169.9 L428.2,172.3 L429.0,172.4 L428.9,172.9 L429.5,173.5 L430.4,172.9 L430.6,174.3 L432.1,175.4 L431.6,176.3 L431.9,177.1 L431.2,177.9 L432.3,180.3 L431.6,182.2 L432.7,183.2 L432.2,184.1 L431.3,183.5 L430.7,184.8 L428.6,186.2 L430.0,189.9 L429.3,192.4 L428.8,192.7 L429.6,194.4 L430.5,194.4 L430.4,195.0 L431.2,195.4 L430.9,196.2 L431.9,196.6 L431.8,197.6 L434.3,197.5 L433.7,198.8 L434.3,199.6 L434.0,200.7 L435.9,203.9 L435.8,205.0 L436.7,205.3 L436.3,205.7 L436.7,207.7 L434.8,211.4 L430.3,214.4 L429.6,215.5 L431.3,216.5 L434.0,219.4 L436.8,221.0 L437.6,219.9 L442.4,218.4 L445.3,218.8 L452.7,217.8 L454.1,218.7 L455.4,222.1 L455.4,224.1 L457.8,229.2 L457.5,230.5 L458.7,232.7 L460.7,233.9 L461.5,235.3 L461.5,236.6 L463.2,237.5 L464.2,239.4 L464.0,242.5 L465.2,243.9 L467.9,244.3 L468.7,245.3 L469.7,243.4 L471.3,242.9 L471.6,241.1 L472.9,240.3 L477.7,239.3 L480.8,239.3 L482.5,239.9 L488.1,238.6 L492.2,238.7 L495.9,237.2 L499.0,239.2 L501.1,239.6 L502.1,241.5 L505.7,244.1 L506.5,245.7 L506.1,249.9 L505.2,251.7 L502.4,253.4 L500.2,260.5 L497.7,262.2 L495.7,263.0 L493.5,263.2 L491.5,264.6 L489.5,264.2 L487.2,265.4 L480.7,265.2 L475.7,269.0 L474.8,270.5 L474.7,272.4 L477.2,275.2 L478.4,275.2 L479.0,276.6 L480.0,277.1 L480.9,280.9 L481.8,282.0 L481.0,284.2 L478.8,287.6 L475.3,289.5 L468.1,291.5 L469.8,294.7 L472.4,297.6 L471.4,300.2 L471.9,302.5 L474.5,303.4 L475.8,305.2 L474.2,308.1 L474.3,309.4 L475.4,310.6 L474.8,312.4 L474.0,313.6 L467.2,319.5 L465.5,322.8 L466.1,324.1 L469.2,326.3 L470.0,328.2 L469.6,330.4 L471.0,333.7 L472.5,335.6 L472.5,336.4 L474.2,337.4 L477.2,337.5 L481.1,340.9 L480.8,343.2 L479.4,345.1 L476.9,351.0 L477.9,354.8 L478.3,360.9 L479.4,363.4 L481.2,364.5 L483.9,364.5 L486.3,366.6 L489.3,366.3 L491.6,367.3 L492.1,368.1 L494.1,369.0 L495.5,371.7 L498.0,371.0 L501.0,368.8 L505.8,369.9 L509.2,367.8 L510.7,368.3 L512.4,371.0 L513.3,371.6 L519.4,371.4 L520.7,372.1 L522.4,374.3 L524.0,375.4 L525.1,375.4 L526.4,374.5 L531.0,373.5 L533.5,370.8 L536.5,369.1 L540.7,369.9 L543.2,368.4 L545.4,365.4 L545.8,359.8 L548.2,357.8 L550.1,358.1 L551.1,356.7 L553.3,356.6 L555.6,354.3 L558.6,353.3 L559.1,352.0 L558.3,350.2 L558.5,349.5 L560.3,347.2 L560.6,345.7 L562.6,345.3 L563.3,346.1 L564.1,349.3 L563.8,352.1 L565.7,352.2 L567.8,353.3 L567.6,355.6 L570.5,360.0 L572.8,359.0 L574.1,359.1 L576.1,360.0 L577.2,361.2 L579.4,361.3 L585.8,358.8 L587.6,360.9 L591.1,362.9 L592.0,365.0 L594.9,368.8 L598.1,371.1 L602.6,370.9 L606.4,368.5 L607.2,370.1 L607.4,371.8 L606.5,378.7 L608.7,382.7 L610.0,382.5 L612.9,383.9 L614.1,385.5 L616.6,386.8 L620.4,391.6 L622.7,392.6 L624.8,395.2 L626.9,396.7 L630.6,397.6 L633.6,396.4 L635.3,394.8 L636.3,394.9 L635.3,398.3 L635.7,399.4 L638.6,400.9 L640.2,400.8 L648.4,397.5 L653.9,392.7 L654.3,390.9 L653.9,388.4 L655.5,386.2 L655.6,382.6 L661.4,384.0 L661.6,387.3 L662.7,388.3 L665.9,387.3 L668.3,389.2 L669.8,389.6 L674.1,389.4 L675.2,391.0 L678.0,390.8 L678.7,391.4 L679.2,393.0 L681.2,392.2 L683.4,392.8 L691.1,401.3 L694.4,402.2 L692.6,401.1 L691.2,397.4 L692.7,395.6 L692.7,393.0 L693.8,391.6 L695.7,390.6 L696.7,388.2 L697.3,384.0 L699.1,381.5 L698.8,378.9 L697.2,375.6 L696.4,371.1 L699.2,365.7 L700.6,360.7 L702.5,358.2 L701.9,352.5 L703.1,350.8 L706.4,348.0 L707.5,345.7 L707.6,335.9 L708.9,334.7 L715.7,334.7 L717.3,334.0 L722.6,328.7 L727.0,322.3 L728.4,318.9 L729.6,310.7 L728.3,307.2 L728.5,305.1 L730.0,302.1 Z","lx":610.3,"ly":267.7},{"key":"Sullana","display":"Sullana","capital":"Sullana","pop":358559,"area":5424,"dens":66.11,"dep":29,"perm":21,"trans":8,"dark":false,"color":"#8e2b23","fs":8.5,"sw":0.7,"path":"M404.8,156.8 L403.5,158.6 L400.3,159.3 L399.9,161.0 L398.1,162.5 L395.9,163.5 L394.1,163.5 L391.0,167.0 L388.7,168.2 L388.2,169.2 L386.0,169.4 L382.5,171.1 L381.0,171.1 L378.8,173.8 L375.3,173.5 L372.1,172.6 L370.8,174.8 L368.9,176.0 L366.1,174.1 L366.4,172.1 L364.3,170.1 L362.7,169.8 L362.5,169.0 L361.1,168.0 L360.0,168.0 L359.1,166.5 L358.4,166.3 L358.0,166.7 L358.0,169.0 L355.9,167.6 L356.1,166.2 L350.8,165.1 L349.1,161.6 L347.3,162.0 L347.8,160.8 L347.2,160.4 L348.6,158.8 L347.1,158.3 L347.4,156.6 L346.3,156.0 L347.0,155.4 L346.5,154.5 L346.9,153.6 L346.7,152.1 L347.4,151.8 L345.6,147.5 L347.9,145.9 L346.2,144.0 L346.8,142.6 L347.3,142.4 L347.8,143.3 L348.5,142.5 L347.2,141.9 L345.6,140.2 L346.1,137.8 L348.7,134.2 L348.6,133.1 L352.4,130.7 L353.5,127.4 L354.5,127.0 L354.3,124.1 L356.6,119.8 L358.1,119.0 L360.7,114.9 L362.4,113.8 L363.4,112.0 L365.5,110.7 L366.0,109.5 L368.5,108.1 L368.4,107.0 L369.6,107.1 L370.5,105.6 L372.3,105.4 L376.9,102.1 L376.9,97.7 L380.4,94.9 L381.2,94.9 L382.2,93.6 L382.3,91.5 L385.8,87.9 L390.8,80.7 L392.7,78.6 L395.1,77.3 L397.7,74.4 L396.4,71.7 L395.1,73.7 L392.1,75.8 L390.6,77.6 L388.4,77.0 L386.8,75.4 L384.4,76.9 L384.0,78.9 L383.3,78.9 L382.2,79.8 L377.8,74.7 L377.7,72.4 L376.7,71.4 L375.3,71.5 L372.9,74.1 L371.5,75.0 L369.3,73.2 L361.7,79.0 L361.1,77.8 L360.1,77.6 L359.2,76.3 L358.3,73.5 L353.8,70.9 L352.7,70.9 L351.0,71.8 L349.2,73.3 L348.8,74.9 L347.3,75.7 L347.5,47.0 L347.1,46.6 L348.1,43.8 L347.5,43.6 L346.2,45.3 L344.2,45.1 L342.1,46.7 L340.9,46.2 L340.8,45.5 L342.2,43.5 L342.0,41.8 L338.0,37.5 L337.2,34.9 L335.6,34.0 L335.7,32.0 L333.6,30.0 L333.2,30.6 L331.8,30.6 L329.4,31.7 L328.9,33.0 L327.4,32.7 L325.0,33.8 L324.0,35.4 L322.8,35.4 L321.9,37.0 L320.8,37.9 L319.3,41.2 L319.3,43.8 L317.8,43.5 L317.1,44.0 L316.1,46.4 L314.8,48.1 L315.1,49.1 L314.3,50.9 L312.5,51.2 L312.5,52.8 L311.9,53.3 L311.3,55.0 L310.1,55.6 L310.1,57.3 L307.7,58.2 L307.7,59.3 L308.5,60.2 L308.2,60.8 L306.5,60.6 L306.9,63.8 L302.3,65.9 L302.4,68.0 L301.1,69.2 L301.2,70.7 L299.9,70.3 L297.6,72.0 L297.7,73.2 L296.8,73.5 L296.2,74.6 L296.4,77.6 L292.2,77.1 L291.3,76.2 L291.3,78.3 L290.6,78.0 L289.7,78.5 L288.8,81.5 L285.3,83.1 L284.6,83.9 L283.9,83.2 L281.1,82.5 L280.1,83.2 L279.5,82.6 L276.6,83.0 L275.9,81.9 L272.8,80.5 L271.2,78.8 L268.9,77.8 L266.5,76.0 L265.7,74.6 L264.9,74.8 L264.1,72.8 L260.7,71.1 L258.6,68.7 L256.9,67.9 L254.9,68.7 L253.6,68.3 L252.4,68.6 L252.4,69.3 L251.5,70.0 L249.7,70.2 L248.8,68.7 L248.3,68.9 L246.6,67.5 L246.5,65.6 L245.5,65.6 L244.1,64.4 L243.7,64.5 L243.8,65.4 L241.5,65.7 L240.6,66.6 L239.2,64.1 L237.3,65.0 L235.7,64.9 L234.0,63.2 L233.6,63.7 L232.7,63.1 L231.3,63.0 L228.9,63.8 L227.8,63.5 L227.0,63.9 L227.3,65.1 L226.7,65.3 L225.7,64.6 L224.2,65.2 L220.9,64.6 L219.5,63.6 L212.0,67.1 L210.1,67.1 L207.2,68.5 L203.8,68.2 L202.4,69.1 L200.0,68.5 L198.5,69.0 L197.0,68.3 L195.5,69.4 L191.1,69.7 L189.7,69.3 L188.6,67.5 L185.5,66.7 L184.3,64.9 L178.8,63.3 L177.3,61.7 L176.0,61.3 L174.4,61.1 L173.2,63.9 L171.4,64.5 L171.2,68.5 L174.2,69.1 L173.6,71.5 L174.2,72.6 L175.8,73.8 L176.0,75.8 L181.4,81.2 L180.9,82.5 L174.8,89.1 L175.0,90.4 L174.1,91.9 L173.7,93.8 L174.1,96.0 L172.7,99.0 L172.5,101.8 L171.1,104.5 L171.2,106.9 L172.6,108.8 L176.6,111.8 L179.1,115.1 L181.5,113.6 L182.7,111.4 L184.9,112.5 L187.3,115.4 L193.7,114.1 L196.4,114.6 L196.6,116.5 L195.1,118.5 L195.8,119.5 L195.8,121.4 L192.8,123.7 L192.3,124.6 L192.4,125.8 L191.7,126.9 L193.4,131.0 L192.8,132.0 L193.9,132.8 L196.7,133.2 L197.1,134.1 L199.1,134.8 L199.7,135.6 L199.7,136.6 L202.5,139.0 L204.1,138.6 L206.6,138.8 L208.9,139.9 L210.4,139.1 L208.8,143.5 L206.3,143.9 L204.5,145.6 L203.9,146.9 L202.2,148.1 L204.3,153.0 L202.6,154.4 L201.7,156.4 L199.6,157.8 L201.0,161.2 L200.5,162.5 L202.5,165.2 L200.7,165.3 L199.0,166.5 L196.4,166.6 L194.6,168.3 L194.4,169.2 L195.3,170.7 L192.9,172.5 L193.0,174.6 L194.5,176.5 L194.0,177.5 L190.9,178.3 L189.9,179.6 L187.6,180.7 L177.6,188.4 L178.5,190.8 L176.7,192.9 L176.7,194.0 L177.6,195.8 L177.5,197.2 L178.9,198.4 L179.8,200.0 L181.4,199.2 L183.5,199.3 L184.1,201.8 L185.9,203.2 L185.8,204.6 L186.6,205.4 L187.0,208.3 L188.6,208.7 L189.7,209.9 L188.7,211.8 L188.7,214.3 L187.8,215.6 L182.8,217.6 L179.6,222.8 L178.2,223.0 L175.5,222.4 L174.4,223.2 L171.3,224.0 L173.9,229.1 L176.5,229.3 L178.7,234.4 L185.7,243.8 L187.5,244.4 L189.7,246.7 L192.4,247.7 L193.0,248.6 L194.5,249.2 L194.9,250.6 L196.6,252.4 L198.4,257.2 L198.2,258.0 L199.6,259.9 L200.7,263.8 L201.7,265.1 L203.3,271.0 L159.9,279.4 L173.1,291.4 L173.4,295.4 L172.3,299.5 L170.4,301.7 L169.6,303.7 L170.0,306.4 L165.2,312.5 L166.2,313.2 L166.4,314.4 L167.8,314.8 L170.4,314.5 L170.8,314.0 L170.7,316.1 L171.3,317.6 L170.8,319.3 L172.5,321.8 L173.8,321.9 L175.8,323.5 L178.5,323.1 L181.3,323.9 L184.0,323.8 L191.2,323.0 L194.6,323.6 L196.6,325.4 L199.9,324.4 L200.5,325.8 L200.1,328.0 L201.3,329.2 L202.5,329.0 L205.7,326.7 L208.7,326.6 L210.4,327.4 L211.9,332.9 L211.4,334.8 L211.5,337.9 L210.4,340.5 L208.2,341.3 L207.3,340.9 L202.3,344.2 L203.3,395.8 L199.2,463.8 L202.9,468.3 L205.1,466.0 L206.3,463.2 L206.5,460.5 L208.1,458.1 L207.6,451.8 L209.7,447.5 L210.2,444.2 L212.8,442.6 L212.8,440.6 L218.8,442.5 L221.7,436.5 L224.7,432.6 L225.9,429.0 L229.4,425.3 L230.8,419.9 L232.3,416.9 L235.4,412.4 L241.8,406.9 L256.7,368.5 L272.3,370.6 L272.1,369.8 L275.0,364.5 L274.9,362.6 L276.1,359.6 L275.9,356.9 L276.5,354.3 L282.1,353.0 L283.1,348.1 L285.7,343.1 L286.4,340.6 L290.6,336.6 L291.0,332.4 L293.3,330.0 L294.4,328.1 L296.7,328.0 L298.2,327.4 L299.3,327.9 L302.4,325.8 L302.3,322.9 L303.0,320.3 L306.3,319.8 L309.7,317.2 L310.1,316.2 L309.3,312.5 L311.0,311.3 L312.5,306.5 L314.5,304.1 L321.0,299.1 L326.3,298.1 L329.4,300.3 L331.0,300.1 L332.9,301.0 L335.1,300.4 L337.5,299.0 L340.3,299.9 L341.7,300.8 L345.4,301.5 L346.4,300.1 L349.6,299.0 L351.9,298.9 L354.4,300.1 L358.0,300.3 L361.9,297.5 L363.9,293.6 L370.1,292.2 L371.9,289.2 L373.5,289.0 L375.3,289.7 L378.9,290.0 L381.4,288.7 L382.9,286.9 L384.0,287.0 L383.6,284.7 L382.1,284.7 L379.3,281.5 L381.1,279.2 L376.7,277.2 L374.7,274.9 L371.7,272.8 L369.5,268.6 L369.4,266.3 L368.5,265.7 L368.0,263.9 L365.6,262.8 L364.7,261.1 L365.1,260.0 L364.0,259.5 L364.3,257.2 L363.6,257.5 L363.5,256.7 L362.9,256.5 L362.7,253.7 L364.8,253.5 L365.6,250.3 L368.1,246.3 L367.6,244.5 L369.2,241.5 L371.2,240.6 L374.8,240.8 L375.8,239.5 L380.5,238.3 L382.8,238.8 L383.6,238.3 L384.5,232.4 L385.5,231.1 L387.2,230.9 L387.9,227.4 L397.6,224.1 L401.4,220.0 L404.5,218.5 L410.7,217.3 L414.4,213.8 L416.8,213.5 L419.7,211.8 L423.6,213.5 L425.9,212.9 L427.6,213.2 L429.6,215.5 L430.3,214.4 L434.8,211.4 L436.7,207.7 L436.3,205.7 L436.7,205.3 L435.8,205.0 L435.9,203.9 L434.0,200.7 L434.3,199.6 L433.7,198.8 L434.3,197.5 L431.8,197.6 L431.9,196.6 L430.9,196.2 L431.2,195.4 L430.4,195.0 L430.5,194.4 L429.6,194.4 L428.8,192.7 L429.3,192.4 L430.0,189.9 L428.6,186.2 L430.7,184.8 L431.3,183.5 L432.2,184.1 L432.7,183.2 L431.6,182.2 L432.3,180.3 L431.2,177.9 L431.9,177.1 L431.6,176.3 L432.1,175.4 L430.6,174.3 L430.4,172.9 L429.5,173.5 L428.9,172.9 L429.0,172.4 L428.2,172.3 L429.0,169.9 L432.1,169.2 L432.9,167.7 L431.9,166.4 L430.6,166.4 L428.5,164.4 L427.5,164.4 L427.2,163.3 L427.9,161.4 L426.8,160.4 L425.1,159.9 L424.4,158.2 L422.3,157.7 L423.2,159.7 L422.5,160.4 L421.7,159.0 L419.6,159.2 L419.2,158.1 L417.2,157.6 L416.1,155.6 L414.1,155.4 L412.2,156.6 L411.8,158.4 L411.2,158.8 L409.3,157.8 L407.9,155.9 L408.1,154.5 L407.0,154.1 L406.1,156.0 L404.8,156.8 Z","lx":280.1,"ly":220.3},{"key":"Talara","display":"Talara","capital":"Talara","pop":162208,"area":2799,"dens":57.95,"dep":12,"perm":10,"trans":2,"dark":false,"color":"#7d2a21","fs":8.5,"sw":0.7,"path":"M133.5,31.6 L129.0,38.4 L126.8,38.1 L124.2,40.0 L121.1,40.2 L116.3,43.0 L112.4,46.3 L102.8,62.6 L99.3,64.9 L97.1,64.3 L95.7,64.9 L88.1,75.5 L85.8,77.7 L83.6,79.0 L81.3,79.0 L79.2,80.9 L74.7,82.6 L72.6,84.4 L69.4,88.8 L67.1,90.0 L62.6,90.7 L61.6,91.9 L58.5,97.9 L57.1,99.3 L56.0,107.8 L54.3,112.1 L57.1,118.5 L58.4,125.7 L58.5,128.4 L57.8,130.5 L58.1,133.9 L57.2,136.0 L57.2,143.2 L56.0,146.5 L54.3,147.2 L54.3,149.8 L53.0,152.4 L52.5,156.4 L52.0,157.2 L51.3,156.9 L49.8,161.4 L49.3,161.8 L49.0,161.4 L48.1,163.5 L46.9,164.4 L45.0,164.3 L43.9,163.7 L43.3,165.1 L42.6,165.3 L41.1,167.3 L40.0,166.9 L40.0,168.3 L40.8,169.0 L40.8,171.0 L39.6,171.8 L39.9,172.5 L38.4,173.6 L39.6,176.0 L39.6,177.8 L47.2,191.7 L47.3,193.1 L46.2,193.5 L47.7,196.7 L48.0,198.1 L47.2,199.5 L49.4,206.8 L47.2,208.7 L46.5,208.5 L46.2,207.5 L45.2,208.2 L44.7,212.8 L42.7,215.2 L41.9,218.6 L41.9,224.3 L40.9,225.9 L40.0,230.3 L38.7,232.4 L37.0,239.0 L33.8,242.3 L30.3,242.3 L30.1,243.2 L31.0,245.9 L30.8,246.7 L30.0,247.1 L38.6,257.5 L72.5,295.6 L159.9,279.4 L203.3,271.0 L201.7,265.1 L200.7,263.8 L199.6,259.9 L198.2,258.0 L198.4,257.2 L196.6,252.4 L194.9,250.6 L194.5,249.2 L193.0,248.6 L192.4,247.7 L189.7,246.7 L187.5,244.4 L185.7,243.8 L178.7,234.4 L176.5,229.3 L173.9,229.1 L171.3,224.0 L174.4,223.2 L175.5,222.4 L178.2,223.0 L179.6,222.8 L182.8,217.6 L187.8,215.6 L188.7,214.3 L188.7,211.8 L189.7,209.9 L188.6,208.7 L187.0,208.3 L186.6,205.4 L185.8,204.6 L185.9,203.2 L184.1,201.8 L183.5,199.3 L181.4,199.2 L179.8,200.0 L178.9,198.4 L177.5,197.2 L177.6,195.8 L176.7,194.0 L176.7,192.9 L178.5,190.8 L177.6,188.4 L187.6,180.7 L189.9,179.6 L190.9,178.3 L194.0,177.5 L194.5,176.5 L193.0,174.6 L192.9,172.5 L195.3,170.7 L194.4,169.2 L194.6,168.3 L196.4,166.6 L199.0,166.5 L200.7,165.3 L202.5,165.2 L200.5,162.5 L201.0,161.2 L199.6,157.8 L201.7,156.4 L202.6,154.4 L204.3,153.0 L202.2,148.1 L203.9,146.9 L204.5,145.6 L206.3,143.9 L208.8,143.5 L210.4,139.1 L208.9,139.9 L206.6,138.8 L204.1,138.6 L202.5,139.0 L199.7,136.6 L199.7,135.6 L199.1,134.8 L197.1,134.1 L196.7,133.2 L193.9,132.8 L192.8,132.0 L193.4,131.0 L191.7,126.9 L192.4,125.8 L192.3,124.6 L192.8,123.7 L195.8,121.4 L195.8,119.5 L195.1,118.5 L196.6,116.5 L196.4,114.6 L193.7,114.1 L187.3,115.4 L184.9,112.5 L182.7,111.4 L181.5,113.6 L179.1,115.1 L176.6,111.8 L172.6,108.8 L171.2,106.9 L171.1,104.5 L172.5,101.8 L172.7,99.0 L174.1,96.0 L173.7,93.8 L174.1,91.9 L175.0,90.4 L174.8,89.1 L180.9,82.5 L181.4,81.2 L176.0,75.8 L175.8,73.8 L174.2,72.6 L173.6,71.5 L174.2,69.1 L171.2,68.5 L171.4,64.5 L168.7,60.9 L163.7,63.0 L160.2,62.4 L159.0,61.0 L159.0,60.3 L160.6,58.3 L162.3,53.6 L161.1,51.5 L160.0,50.9 L160.3,49.6 L158.8,45.9 L156.3,46.0 L152.9,42.3 L151.0,42.6 L148.5,40.2 L146.6,40.3 L143.9,41.3 L141.5,40.8 L140.0,38.6 L137.4,37.5 L137.0,36.2 L134.7,33.8 L133.5,31.6 Z","lx":112.8,"ly":181.0}];
+const GEN = {"provincias": 3, "dependencias": 43, "poblacion": 601232, "superficie": 11903, "densidad": 50.51, "permanentes": 33, "transitorios": 10, "salas": 3, "salas_det": "", "juzgados": 30, "juz_det": "", "jpl": 10, "jpl_det": "Permanentes 33 · Transitorias 10 · Total 43", "nota": "El distrito judicial de Sullana comprende <b>3 provincias</b> de Piura (Ayabaca, Sullana y Talara), con <b>43 dependencias</b>: 33 permanentes y 10 transitorias (8 en Sullana y 2 en Talara).", "nombre": "Sullana", "sin_datos": false, "colsing": "Provincia", "colplural": "provincias", "colplural_cap": "Provincias", "colsing_cap": "Provincia", "sel_hint": "Selecciona una provincia en el mapa o en la tabla", "sub_generic": "Provincia del Sullana", "nota_prov": ""};
+const SIN = GEN.sin_datos === true;                       /* sin desagregado por unidad */
+const num = v => (v === null || v === undefined || (typeof v === "number" && isNaN(v)))
+  ? "—" : v.toLocaleString("es-PE");
+const uni = (v, u) => (v === null || v === undefined) ? "" : u;
+
+const byKey = {};
+PROVS.forEach(p => byKey[p.key] = p);
+
+const RAMP = ["#e9f1fa", "#b9d3ef", "#7faadb", "#4a7fc1", "#26558f", "#123a63"];
+const RAMP_CSS = "linear-gradient(90deg," + RAMP.join(",") + ")";
+
+const IND = {
+  pop:  {label: "Población", key: "pop", short: "hab.", fmt: v => v.toLocaleString("es-PE")},
+  area: {label: "Superficie", key: "area", short: "km²", fmt: v => v.toLocaleString("es-PE")},
+  dens: {label: "Densidad", key: "dens", short: "hab/km²", fmt: v => v.toLocaleString("es-PE", {maximumFractionDigits: 2})},
+  dep:  {label: "Dependencias", key: "dep", short: "dependencias", fmt: v => v.toLocaleString("es-PE")}
+};
+
+let mode = "cat";
+let indicator = "pop";
+let selected = null;
+
+const qs = id => document.getElementById(id);
+const svg = qs("map");
+const viewport = qs("viewport");
+const tip = qs("tip");
+
+/* ---------- utilidades ---------- */
+function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function lerpColor(a, b, t){
+  const ca = hex2rgb(a), cb = hex2rgb(b);
+  const c = ca.map((v, i) => Math.round(v + (cb[i] - v) * t));
+  return "rgb(" + c.join(",") + ")";
+}
+function rampColor(t){
+  t = Math.max(0, Math.min(1, t));
+  const n = RAMP.length - 1, p = t * n, i = Math.min(n - 1, Math.floor(p)), f = p - i;
+  return lerpColor(RAMP[i], RAMP[i+1], f);
+}
+function value(p){ return p[IND[indicator].key]; }
+function norm(p){
+  /* posicion relativa: reparte todo el degradado aunque un valor domine (p.ej. Huaraz) */
+  const vals = PROVS.map(value).slice().sort((a,b) => a - b);
+  const v = value(p);
+  let i = 0;
+  while (i < vals.length && vals[i] < v) i++;
+  return vals.length > 1 ? i / (vals.length - 1) : 0.5;
+}
+function fmt(p){ return IND[indicator].fmt(value(p)) + " " + IND[indicator].short; }
+
+/* ---------- pintado ---------- */
+function luma(css){
+  let r, g, b;
+  const m = css.match(/rgb\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)\)/);
+  if (m) { r = +m[1]; g = +m[2]; b = +m[3]; }
+  else {
+    const h = String(css).replace("#", "");
+    if (h.length < 6) return 200;
+    r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+  }
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function paint(){
+  const legend = qs("legend");
+  if (SIN) mode = "cat";
+  PROVS.forEach(p => {
+    const el = qs("p-" + p.key.replace(/ /g, "-"));
+    if (!el) return;
+    const fill = (mode === "cat") ? p.color : rampColor(0.06 + norm(p) * 0.94);
+    el.style.fill = fill;
+    const lab = document.querySelector('.plabel[data-label="' + p.key.replace(/ /g, "-") + '"]');
+    if (lab) lab.classList.toggle("dark", luma(fill) > 126);
+  });
+  if (mode === "cat") {
+    legend.classList.add("cat");
+    qs("legendTitle").textContent = GEN.colplural_cap;
+    qs("legendItems").innerHTML = PROVS.map(p =>
+      '<span><i style="background:' + p.color + '"></i>' + p.display + '</span>').join("");
+    qs("legendBar").style.background = "";
+    qs("legendMin").textContent = "";
+    qs("legendMax").textContent = "";
+  } else {
+    legend.classList.remove("cat");
+    const vals = PROVS.map(value);
+    qs("legendTitle").textContent = IND[indicator].label;
+    qs("legendBar").style.background = RAMP_CSS;
+    qs("legendMin").textContent = IND[indicator].fmt(Math.min.apply(null, vals));
+    qs("legendMax").textContent = IND[indicator].fmt(Math.max.apply(null, vals));
+  }
+}
+
+/* ---------- panel ---------- */
+function statCard(k, v, u){
+  return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v +
+    (u ? ' <small>' + u + '</small>' : '') + '</div></div>';
+}
+
+function showOverview(){
+  selected = null;
+  qs("selLayer").innerHTML = "";
+  qs("pTitle").textContent = "Distrito Judicial de " + GEN.nombre;
+  qs("pSub").textContent = GEN.sel_hint;
+  qs("pChip").textContent = GEN.provincias + " " + GEN.colplural;
+  qs("pStats").innerHTML =
+    statCard(GEN.colplural_cap, GEN.provincias, "") +
+    statCard("Dependencias", GEN.dependencias, "") +
+    statCard("Población", GEN.poblacion.toLocaleString("es-PE"), "hab.") +
+    statCard("Superficie", GEN.superficie.toLocaleString("es-PE"), "km²") +
+    statCard("Densidad", GEN.densidad.toLocaleString("es-PE", {maximumFractionDigits: 2}), "hab/km²") +
+    statCard("Permanentes", GEN.permanentes, "de " + GEN.dependencias);
+  if (!SIN) renderBars(null);
+  qs("pNote").innerHTML = GEN.nota;
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.remove("sel"));
+}
+
+function showProvince(key){
+  const p = byKey[key];
+  if (!p) return;
+  selected = key;
+  qs("selLayer").innerHTML = '<path d="' + p.path + '"></path>';
+  qs("pTitle").textContent = p.display;
+  qs("pSub").textContent = p.capital ? (GEN.colsing + " · capital " + p.capital)
+                                     : GEN.sub_generic;
+  qs("pChip").textContent = SIN ? GEN.colsing : (num(p.dep) + " dependencias");
+  qs("pStats").innerHTML =
+    statCard("Población", num(p.pop), uni(p.pop, "hab.")) +
+    statCard("Superficie", num(p.area), uni(p.area, "km²")) +
+    statCard("Densidad", num(p.dens), uni(p.dens, "hab/km²")) +
+    statCard("Dependencias", num(p.dep), uni(p.dep, "total")) +
+    statCard("Permanentes", num(p.perm), "") +
+    statCard("Transitorias", num(p.trans), "");
+  if (!SIN) renderBars(key);
+  qs("pNote").innerHTML = SIN ? GEN.nota_prov :
+    ("Participación en el distrito: <b>" + (p.dep / GEN.dependencias * 100).toFixed(1) + "%</b> de las dependencias y <b>" +
+     (p.pop / GEN.poblacion * 100).toFixed(1) + "%</b> de la población. " +
+     "Densidad: <b>" + p.dens.toLocaleString("es-PE", {maximumFractionDigits: 2}) + " hab/km²</b>");
+  document.querySelectorAll("#tbody tr").forEach(tr => tr.classList.toggle("sel", tr.dataset.key === key));
+}
+
+function renderBars(activeKey){
+  if (!qs("pBars")) return;
+  const max = Math.max.apply(null, PROVS.map(p => p.dep));
+  qs("pBars").innerHTML = PROVS.slice().sort((a,b) => b.dep - a.dep).map(p =>
+    '<div class="barrow"><span class="nm"' + (p.key === activeKey ? ' style="color:#8e2b23;font-weight:650"' : '') + '>' +
+    p.display + '</span><span class="tr"><i style="width:' + (p.dep / max * 100) + '%' +
+    (p.key === activeKey ? ';background:linear-gradient(90deg,#12202f,#3d5165)' : '') + '"></i></span>' +
+    '<span class="vl">' + p.dep + '</span></div>').join("");
+}
+
+function select(key){ showProvince(key); }
+
+/* ---------- tabla ---------- */
+let sortKey = "pop", sortDir = -1;
+function renderTable(){
+  const rows = PROVS.slice().sort((a,b) => {
+    const va = a[sortKey], vb = b[sortKey];
+    if (typeof va === "string" || typeof vb === "string")
+      return String(va).localeCompare(String(vb)) * sortDir;
+    return ((va === null || va === undefined ? -1 : va) -
+            (vb === null || vb === undefined ? -1 : vb)) * sortDir;
+  });
+  qs("tbody").innerHTML = rows.map(p =>
+    '<tr data-key="' + p.key + '"><td>' + p.display + '</td><td>' +
+    (p.capital ? p.capital : "—") + '</td>' +
+    '<td>' + num(p.pop) + '</td>' +
+    '<td>' + num(p.area) + '</td>' +
+    '<td>' + num(p.dens) + '</td>' +
+    '<td>' + num(p.dep) + '</td></tr>').join("");
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    tr.onclick = () => select(tr.dataset.key);
+    tr.onmouseenter = () => hover(tr.dataset.key, true);
+    tr.onmouseleave = () => hover(tr.dataset.key, false);
+    if (tr.dataset.key === selected) tr.classList.add("sel");
+  });
+}
+document.querySelectorAll("th[data-sort]").forEach(th => {
+  th.onclick = () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = (k === "display" || k === "capital") ? 1 : -1; }
+    renderTable();
+  };
+});
+
+/* ---------- hover ---------- */
+function hover(key, on){
+  const p = byKey[key];
+  const lab = document.querySelector('.plabel[data-label="' + key.replace(/ /g, "-") + '"]');
+  if (lab) lab.style.opacity = on ? 0.75 : 1;
+  if (!on) { tip.hidden = true; return; }
+  if (!p) return;
+  tip.hidden = false;
+  tip.innerHTML = '<b>' + p.display + '</b><span>' +
+    (p.capital ? p.capital + ' · ' : '') +
+    (p.pop === null || p.pop === undefined ? 'sin desagregado en el documento'
+      : p.pop.toLocaleString("es-PE") + ' hab. · ' + p.dep + ' dep.') + '</span>';
+}
+
+qs("provs").addEventListener("mousemove", ev => {
+  const t = ev.target;
+  if (!t.classList || !t.classList.contains("prov")) return;
+  hover(t.dataset.key, true);
+  const rect = svg.getBoundingClientRect();
+  tip.style.left = (ev.clientX - rect.left) + "px";
+  tip.style.top = (ev.clientY - rect.top) + "px";
+});
+qs("provs").addEventListener("mouseleave", () => { tip.hidden = true; });
+
+PROVS.forEach(p => {
+  const el = qs("p-" + p.key.replace(/ /g, "-"));
+  if (!el) return;
+  el.addEventListener("click", () => select(p.key));
+  el.addEventListener("keydown", ev => {
+    if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); select(p.key); }
+  });
+});
+
+/* ---------- modos ---------- */
+qs("mCat").onclick = () => {
+  mode = "cat";
+  qs("mCat").classList.add("on");
+  qs("mVar").classList.remove("on");
+  qs("indicator").disabled = true;
+  qs("indicator").classList.remove("on");
+  paint();
+};
+if (qs("mVar")) qs("mVar").onclick = () => {
+  mode = "var";
+  qs("mVar").classList.add("on");
+  qs("mCat").classList.remove("on");
+  qs("indicator").disabled = false;
+  qs("indicator").classList.add("on");
+  paint();
+};
+if (qs("indicator")) qs("indicator").onchange = ev => { indicator = ev.target.value; paint(); };
+
+/* ---------- zoom ---------- */
+let zoom = {k: 1, x: 0, y: 0};
+const VB = {w: 760, h: 498.3};
+function applyZoom(){
+  viewport.setAttribute("transform", "translate(" + zoom.x + "," + zoom.y + ") scale(" + zoom.k + ")");
+}
+function clamp(){
+  zoom.k = Math.max(1, Math.min(8, zoom.k));
+  const w = VB.w * zoom.k, h = VB.h * zoom.k;
+  zoom.x = Math.min(0, Math.max(VB.w - w, zoom.x));
+  zoom.y = Math.min(0, Math.max(VB.h - h, zoom.y));
+  if (zoom.k === 1) { zoom.x = 0; zoom.y = 0; }
+}
+function zoomAt(cx, cy, f){
+  const k2 = Math.max(1, Math.min(8, zoom.k * f));
+  const g = k2 / zoom.k;
+  zoom.x = cx - (cx - zoom.x) * g;
+  zoom.y = cy - (cy - zoom.y) * g;
+  zoom.k = k2;
+  clamp(); applyZoom();
+}
+function toSvg(ev){
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  const ox = (r.width - VB.w * sc) / 2, oy = (r.height - VB.h * sc) / 2;
+  return {x: (ev.clientX - r.left - ox) / sc, y: (ev.clientY - r.top - oy) / sc};
+}
+svg.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const p = toSvg(ev);
+  zoomAt(p.x, p.y, ev.deltaY < 0 ? 1.16 : 1 / 1.16);
+}, {passive: false});
+
+let drag = null;
+svg.addEventListener("pointerdown", ev => {
+  if (ev.button !== 0) return;
+  drag = {x: ev.clientX, y: ev.clientY, zx: zoom.x, zy: zoom.y};
+  svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener("pointermove", ev => {
+  if (!drag) return;
+  const r = svg.getBoundingClientRect();
+  const sc = Math.min(r.width / VB.w, r.height / VB.h);
+  zoom.x = drag.zx + (ev.clientX - drag.x) / sc;
+  zoom.y = drag.zy + (ev.clientY - drag.y) / sc;
+  clamp(); applyZoom(); svg.classList.add("dragging");
+});
+function endDrag(ev){
+  if (!drag) return;
+  if (svg.hasPointerCapture(ev.pointerId)) svg.releasePointerCapture(ev.pointerId);
+  drag = null; svg.classList.remove("dragging");
+}
+svg.addEventListener("pointerup", endDrag);
+svg.addEventListener("pointercancel", endDrag);
+qs("zin").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1.35);
+qs("zout").onclick = () => zoomAt(VB.w / 2, VB.h / 2, 1 / 1.35);
+qs("zreset").onclick = () => { zoom = {k: 1, x: 0, y: 0}; applyZoom(); showOverview(); };
+
+/* ---------- inicio ---------- */
+paint();
+renderTable();
+showOverview();
+applyZoom();
+</script>
+<script>try{parent.postMessage({tipo:'mapa-dj-ok'},'*');}catch(e){}</script>
+</body>
+</html>
