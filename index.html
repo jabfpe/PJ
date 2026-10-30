@@ -1322,7 +1322,7 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
   function populationRow(name,population,judges,total){
     var rate = (population && judges!==null) ? (judges*100000/population) : null;
     return '<tr'+(total?' class="total"':'')+'><td>'+esc2(name)+'</td>'
-      +'<td class="num">'+fnum(population)+'</td>'
+      +'<td class="num">'+(population===null?'\u2014':fnum(population))+'</td>'
       +'<td class="num">'+(judges===null?'\u2014':fnum(judges))+'</td>'
       +'<td class="num">'+(rate===null?'\u2014':rate.toFixed(2))+'</td></tr>';
   }
@@ -1334,7 +1334,11 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
       sum+=pop; if(j!==null) judgeTotal+=j;
       rows+=populationRow(name,pop,j,false);
     });
-    var totalRow=populationRow('TOTAL DISTRITOS JUDICIALES',POPULATION.Total[year],judgeTotal,true);
+    var csnjpe=RES.jueces['CORTE SUPERIOR NACIONAL DE JUSTICIA PENAL ESPECIALIZADA'];
+    var csnjpeJ=csnjpe?csnjpe.tot:0;
+    judgeTotal+=csnjpeJ;
+    rows+=populationRow('Corte Superior Nacional de Justicia Penal Especializada',null,csnjpeJ,false);
+    var totalRow=populationRow('TOTAL NACIONAL (34 distritos judiciales + CSNJPE)',POPULATION.Total[year],judgeTotal,true);
     var nationalRate=(POPULATION.Total[year] ? (judgeTotal*100000/POPULATION.Total[year]) : 0).toFixed(2);
     var sel='';
     ['2025','2026','2027','2028'].forEach(function(y){ sel+='<option value="'+y+'"'+(y===year?' selected':'')+'>'+y+'</option>'; });
@@ -1347,8 +1351,8 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
       +'<th class="num">Juez por habitante<br><span class="th-sub">(por 100.000 hab. \u00b7 '+year+')</span></th></tr></thead>'
       +'<tbody>'+rows+totalRow+'</tbody></table>'
       +'<p class="population-note">Juez por habitante = total de jueces del distrito judicial (informaci\u00f3n institucional) \u00f7 poblaci\u00f3n proyectada del a\u00f1o seleccionado \u00d7 100.000. '
-      +'Ratio nacional de los 34 distritos judiciales: '+nationalRate+' por 100.000 hab. (jueces '+fnum(judgeTotal)+'). '
-      +'Poblaci\u00f3n: INEI, proyecciones 2025\u20132028 por distrito judicial (POBLACION.xlsx). Jueces: dato institucional ya usado en este mapa; no incluye la CSNJPE, que no corresponde a un distrito judicial.</p>';
+      +'Ratio nacional: '+nationalRate+' por 100.000 hab. (jueces '+fnum(judgeTotal)+', incluye los 48 de la CSNJPE). '
+      +'Poblaci\u00f3n: INEI, proyecciones 2025\u20132028 por distrito judicial (POBLACION.xlsx). Jueces: dato institucional ya usado en este mapa. La Corte Superior Nacional de Justicia Penal Especializada (CSNJPE) no corresponde a un distrito judicial con poblaci\u00f3n asignada, por lo que sus 48 jueces se incluyen en el total nacional sin ratio por habitante.</p>';
   }
 
   function curCorte(){
