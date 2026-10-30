@@ -117,6 +117,7 @@ footer{padding:12px 0 24px;color:var(--muted);font-size:10px;text-align:center}
 .rec-tabs button{border:1px solid var(--line);background:#f3f7fc;color:#205a96;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer}
 .rec-tabs button.active{background:#205a96;color:#fff;border-color:#205a96}
 .rec-body{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.rec-body.wide{max-height:min(70vh,720px)}
 .rec-table{width:100%;border-collapse:collapse;font-size:12px}
 .rec-table th,.rec-table td{padding:6px 10px;border-bottom:1px solid #eef2f7;text-align:left}
 .rec-table th{position:sticky;top:0;background:#eef4fb;color:#205a96;font-size:11px;z-index:1}
@@ -150,6 +151,8 @@ footer{padding:12px 0 24px;color:var(--muted);font-size:10px;text-align:center}
 @media(max-width:900px){.cl-kpis{grid-template-columns:repeat(2,1fr)}}
 
 .info-card{padding:0;border-radius:12px;overflow:hidden;margin-top:14px}
+.population-card{padding:14px;margin-top:14px}.population-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 0 10px}.population-head h4{margin:0;font-size:13px;color:#205a96;text-transform:uppercase;letter-spacing:.4px}.population-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.population-controls label{margin:0}.population-controls select{padding:6px 10px;border:1px solid #cbd7e5;border-radius:7px;font-weight:700;color:var(--accent);background:#fff;font-size:12px}.population-table{min-width:640px;width:100%;border-collapse:collapse;font-size:12px}.population-table th,.population-table td{padding:7px 10px;border-bottom:1px solid #edf1f5}.population-table th{position:sticky;top:0;background:#eef4fb;color:#205a96;z-index:1}.population-table .th-sub{font-weight:400;font-size:10px;color:var(--muted)}.population-table td.num,.population-table th.num{text-align:right;font-variant-numeric:tabular-nums}.population-table tr.total td{font-weight:800;background:#f5f8fc;border-top:2px solid var(--line)}.population-note{font-size:10px;color:var(--muted);margin:8px 2px 0;line-height:1.5}.pop-btn{background:#f3f7fc;color:#205a96}.pop-btn.active{background:#205a96;color:#fff;border-color:#205a96}
+@media(max-width:700px){.population-head{flex-direction:column;align-items:flex-start}}
 .info-card-header{background:linear-gradient(135deg,#123d70,#2474bd);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
 .info-card-title{font-size:16px;font-weight:700}
 .info-card-zone{font-size:11px;opacity:.85}
@@ -437,6 +440,7 @@ footer{padding:12px 0 24px;color:var(--muted);font-size:10px;text-align:center}
     <div class="rec-tabs">
       <button data-tab="dep" class="active">Dependencias jurisdiccionales</button>
       <!--<button data-tab="dep2024">Dependencias 2024 &middot; Condici&oacute;n del local</button> -->
+      <button data-tab="poblacion" class="pop-btn">Poblaci&oacute;n y jueces</button>
       <button data-tab="jueces">Condici&oacute;n de jueces por Corte</button>
       <button data-tab="resumen">Jueces y auxiliares</button>
       <button data-tab="locales">Locales alquilados</button>
@@ -1305,6 +1309,47 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     return '<h4>Datos institucionales de la corte</h4><div class="res-grid">'+items+'</div>';
   };
   var curTab = 'dep';
+  var populationYear = '2026';
+  var POPULATION = {"Total":{"2025":34350244,"2026":34660114,"2027":34978811,"2028":35307639},"Amazonas":{"2025":430251,"2026":430305,"2027":430415,"2028":430622},"Ancash":{"2025":585561,"2026":584480,"2027":583508,"2028":582730},"Apurímac":{"2025":424906,"2026":423128,"2027":421454,"2028":419948},"Arequipa":{"2025":1631136,"2026":1656746,"2027":1682969,"2028":1709884},"Ayacucho":{"2025":752141,"2026":751878,"2027":751763,"2028":751855},"Cajamarca":{"2025":974536,"2026":970924,"2027":967438,"2028":964135},"Callao":{"2025":748095,"2026":755425,"2027":762840,"2028":770346},"Cañete":{"2025":296767,"2026":303273,"2027":309972,"2028":316892},"Cusco":{"2025":1343794,"2026":1350542,"2027":1357443,"2028":1364539},"Huancavelica":{"2025":205275,"2026":200863,"2027":196726,"2028":192906},"Huánuco":{"2025":689362,"2026":684910,"2027":680797,"2028":677085},"Huaura":{"2025":661396,"2026":674071,"2027":687032,"2028":700315},"Ica":{"2025":1105392,"2026":1126310,"2027":1147709,"2028":1169647},"Junín":{"2025":1045600,"2026":1044698,"2027":1044121,"2028":1043963},"La Libertad":{"2025":2132060,"2026":2157688,"2027":2183786,"2028":2210399},"Lambayeque":{"2025":1857342,"2026":1867358,"2027":1877527,"2028":1887894},"Lima":{"2025":2219687,"2026":2240760,"2027":2262111,"2028":2283764},"Lima Este":{"2025":3147248,"2026":3194450,"2027":3242435,"2028":3291243},"Lima Norte":{"2025":2476712,"2026":2507555,"2027":2538884,"2028":2570712},"Lima Sur":{"2025":2071445,"2026":2095529,"2027":2119975,"2028":2144800},"Loreto":{"2025":838273,"2026":841709,"2027":845225,"2028":848844},"Madre de Dios":{"2025":203069,"2026":209165,"2027":215502,"2028":222102},"Moquegua":{"2025":202946,"2026":204742,"2027":206611,"2028":208574},"Pasco":{"2025":159390,"2026":156913,"2027":154574,"2028":152380},"Piura":{"2025":1574438,"2026":1593999,"2027":1613921,"2028":1634244},"Puente Piedra - Ventanilla":{"2025":1069056,"2026":1094843,"2027":1121316,"2028":1148501},"Puno":{"2025":1199636,"2026":1190370,"2027":1181525,"2028":1173173},"San Martín":{"2025":1118065,"2026":1130516,"2027":1143222,"2028":1156227},"Santa":{"2025":642698,"2026":646736,"2027":650876,"2028":655148},"Selva Central":{"2025":502276,"2026":503594,"2027":504995,"2028":506495},"Sullana":{"2025":598272,"2026":601232,"2027":604215,"2028":607237},"Tacna":{"2025":402089,"2026":407996,"2027":414138,"2028":420531},"Tumbes":{"2025":270134,"2026":273604,"2027":277127,"2028":280712},"Ucayali":{"2025":771196,"2026":783802,"2027":796659,"2028":809792}};
+  var POP_NAME_MAP = {"ANCASH":"Ancash","APURIMAC":"Apurímac","CAÑETE":"Cañete","HUANUCO":"Huánuco","JUNIN":"Junín","LIMA ESTE":"Lima Este","LIMA NORTE":"Lima Norte","LIMA SUR":"Lima Sur","PUENTE PIEDRA-VENTANILLA":"Puente Piedra - Ventanilla","SAN MARTIN":"San Martín","MADRE DE DIOS":"Madre de Dios","LA LIBERTAD":"La Libertad","LIMA":"Lima","CALLAO":"Callao","CUSCO":"Cusco","ICA":"Ica","LORETO":"Loreto","PASCO":"Pasco","PIURA":"Piura","PUNO":"Puno","TACNA":"Tacna","TUMBES":"Tumbes","UCAYALI":"Ucayali","AMAZONAS":"Amazonas","AREQUIPA":"Arequipa","AYACUCHO":"Ayacucho","CAJAMARCA":"Cajamarca","HUANCAVELICA":"Huancavelica","HUAURA":"Huaura","LAMBAYEQUE":"Lambayeque","MOQUEGUA":"Moquegua","SANTA":"Santa","SELVA CENTRAL":"Selva Central","SULLANA":"Sullana"};
+  function normKey(s){ return String(s||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s*-\s*/g,'-').replace(/\s+/g,' ').trim(); }
+  var JUDGES_BY_DISTRICT = {};
+  Object.keys(RES.jueces).forEach(function(k){
+    if(k[0]==='_') return;
+    JUDGES_BY_DISTRICT[normKey(k)] = RES.jueces[k].tot;
+  });
+  function judgesFor(name){ return JUDGES_BY_DISTRICT.hasOwnProperty(normKey(name)) ? JUDGES_BY_DISTRICT[normKey(name)] : null; }
+  function populationRow(name,population,judges,total){
+    var rate = (population && judges!==null) ? (judges*100000/population) : null;
+    return '<tr'+(total?' class="total"':'')+'><td>'+esc2(name)+'</td>'
+      +'<td class="num">'+fnum(population)+'</td>'
+      +'<td class="num">'+(judges===null?'\u2014':fnum(judges))+'</td>'
+      +'<td class="num">'+(rate===null?'\u2014':rate.toFixed(2))+'</td></tr>';
+  }
+  function tablePopulation(){
+    var year=populationYear, sum=0, judgeTotal=0, rows='';
+    Object.keys(POPULATION).forEach(function(name){
+      if(name==='Total') return;
+      var pop=POPULATION[name][year], j=judgesFor(name);
+      sum+=pop; if(j!==null) judgeTotal+=j;
+      rows+=populationRow(name,pop,j,false);
+    });
+    var totalRow=populationRow('TOTAL DISTRITOS JUDICIALES',POPULATION.Total[year],judgeTotal,true);
+    var nationalRate=(POPULATION.Total[year] ? (judgeTotal*100000/POPULATION.Total[year]) : 0).toFixed(2);
+    var sel='';
+    ['2025','2026','2027','2028'].forEach(function(y){ sel+='<option value="'+y+'"'+(y===year?' selected':'')+'>'+y+'</option>'; });
+    return '<div class="population-head"><h4>Poblaci\u00f3n proyectada y jueces por distrito judicial</h4>'
+      +'<div class="population-controls"><label for="populationYear">A\u00f1o:</label>'
+      +'<select id="populationYear" aria-label="A\u00f1o de poblaci\u00f3n">'+sel+'</select>'
+      +'<span class="hint">Por defecto 2026 \u00b7 poblaci\u00f3n nacional '+fnum(POPULATION.Total[year])+'</span></div></div>'
+      +'<table class="population-table"><thead><tr><th>Distrito Judicial</th>'
+      +'<th class="num">Habitantes '+year+'</th><th class="num">Jueces</th>'
+      +'<th class="num">Juez por habitante<br><span class="th-sub">(por 100.000 hab. \u00b7 '+year+')</span></th></tr></thead>'
+      +'<tbody>'+rows+totalRow+'</tbody></table>'
+      +'<p class="population-note">Juez por habitante = total de jueces del distrito judicial (informaci\u00f3n institucional) \u00f7 poblaci\u00f3n proyectada del a\u00f1o seleccionado \u00d7 100.000. '
+      +'Ratio nacional de los 34 distritos judiciales: '+nationalRate+' por 100.000 hab. (jueces '+fnum(judgeTotal)+'). '
+      +'Poblaci\u00f3n: INEI, proyecciones 2025\u20132028 por distrito judicial (POBLACION.xlsx). Jueces: dato institucional ya usado en este mapa; no incluye la CSNJPE, que no corresponde a un distrito judicial.</p>';
+  }
 
   function curCorte(){
     try { var d = getMultiSelected('ms-district'); return d.length===1 ? d[0] : null; }
@@ -1413,8 +1458,10 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
   }
 
   function renderBody(){
-    var cc=curCorte();
     var el=document.getElementById('rec-body');
+    if(el) el.classList.toggle('wide', curTab==='poblacion');
+    if(curTab==='poblacion'){ el.innerHTML=tablePopulation(); return; }
+    var cc=curCorte();
     if(curTab==='dep') el.innerHTML=tableDep(cc);
     else if(curTab==='dep2024') el.innerHTML=tableDep2024(cc);
     else if(curTab==='jueces') el.innerHTML=tableJueces(cc);
@@ -1434,7 +1481,9 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
   }
 
   document.addEventListener('change', function(e){
-    if(e.target && e.target.closest && e.target.closest('#ms-district')) renderBody();
+    if(!e.target) return;
+    if(e.target.id === 'populationYear'){ populationYear = e.target.value; renderBody(); return; }
+    if(e.target.closest && e.target.closest('#ms-district')) renderBody();
   });
   var rb=document.getElementById('reset');
   if(rb) rb.addEventListener('click', function(){ setTimeout(renderBody,0); });
