@@ -443,6 +443,7 @@ footer{padding:12px 0 24px;color:var(--muted);font-size:10px;text-align:center}
       <button data-tab="poblacion" class="pop-btn">Poblaci&oacute;n y jueces</button>
       <button data-tab="jueces">Condici&oacute;n de jueces por Corte</button>
       <button data-tab="resumen">Jueces y auxiliares</button>
+      <button data-tab="jpaz">Juzgados de Paz</button>
       <button data-tab="locales">Locales alquilados</button>
     </div>
     <div id="rec-body" class="rec-body"></div>
@@ -1284,6 +1285,7 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
   function money(n){ return 'S/ ' + fnum(Math.round(n||0)); }
   var DEP2024 = {"AMAZONAS":{"adm":3,"alq":22,"prop":18,"permP":40,"permT":3,"jpl":12,"je":27,"ss":4,"tot":43,"admP":3,"alqP":21,"propP":16},"ANCASH":{"adm":4,"alq":55,"prop":26,"permP":80,"permT":5,"jpl":19,"je":61,"ss":5,"tot":85,"admP":4,"alqP":52,"propP":24},"APURIMAC":{"adm":0,"alq":27,"prop":31,"permP":56,"permT":2,"jpl":17,"je":38,"ss":3,"tot":58,"admP":0,"alqP":27,"propP":29},"AREQUIPA":{"adm":26,"alq":51,"prop":83,"permP":147,"permT":13,"jpl":33,"je":114,"ss":13,"tot":160,"admP":25,"alqP":44,"propP":78},"AYACUCHO":{"adm":25,"alq":42,"prop":15,"permP":79,"permT":3,"jpl":24,"je":52,"ss":6,"tot":82,"admP":25,"alqP":40,"propP":14},"CAJAMARCA":{"adm":4,"alq":70,"prop":9,"permP":76,"permT":7,"jpl":23,"je":53,"ss":7,"tot":83,"admP":4,"alqP":65,"propP":7},"CALLAO":{"adm":73,"alq":0,"prop":0,"permP":64,"permT":9,"jpl":10,"je":55,"ss":8,"tot":73,"admP":64,"alqP":0,"propP":0},"CA\u00d1ETE":{"adm":2,"alq":8,"prop":22,"permP":28,"permT":4,"jpl":9,"je":21,"ss":2,"tot":32,"admP":1,"alqP":8,"propP":19},"CORTE SUPERIOR NACIONAL DE JUSTICIA PENAL ESPECIALIZADA":{"adm":0,"alq":24,"prop":0,"permP":19,"permT":5,"jpl":0,"je":15,"ss":9,"tot":24,"admP":0,"alqP":19,"propP":0},"CUSCO":{"adm":14,"alq":65,"prop":60,"permP":131,"permT":8,"jpl":36,"je":95,"ss":8,"tot":139,"admP":14,"alqP":59,"propP":58},"HUANCAVELICA":{"adm":7,"alq":20,"prop":9,"permP":35,"permT":1,"jpl":12,"je":21,"ss":3,"tot":36,"admP":7,"alqP":19,"propP":9},"HUANUCO":{"adm":12,"alq":10,"prop":47,"permP":60,"permT":9,"jpl":19,"je":46,"ss":4,"tot":69,"admP":12,"alqP":9,"propP":39},"HUAURA":{"adm":0,"alq":47,"prop":8,"permP":49,"permT":6,"jpl":13,"je":39,"ss":3,"tot":55,"admP":0,"alqP":41,"propP":8},"ICA":{"adm":11,"alq":32,"prop":41,"permP":81,"permT":3,"jpl":22,"je":54,"ss":8,"tot":84,"admP":11,"alqP":30,"propP":40},"JUNIN":{"adm":17,"alq":56,"prop":27,"permP":95,"permT":5,"jpl":20,"je":73,"ss":7,"tot":100,"admP":17,"alqP":52,"propP":26},"LA LIBERTAD":{"adm":23,"alq":24,"prop":90,"permP":125,"permT":12,"jpl":32,"je":92,"ss":13,"tot":137,"admP":22,"alqP":22,"propP":81},"LAMBAYEQUE":{"adm":19,"alq":80,"prop":39,"permP":129,"permT":9,"jpl":30,"je":98,"ss":10,"tot":138,"admP":16,"alqP":77,"propP":36},"LIMA":{"adm":208,"alq":128,"prop":16,"permP":331,"permT":21,"jpl":57,"je":252,"ss":43,"tot":352,"admP":196,"alqP":120,"propP":15},"LIMA ESTE":{"adm":18,"alq":152,"prop":0,"permP":133,"permT":37,"jpl":37,"je":123,"ss":10,"tot":170,"admP":17,"alqP":116,"propP":0},"LIMA NORTE":{"adm":5,"alq":82,"prop":65,"permP":116,"permT":36,"jpl":25,"je":116,"ss":11,"tot":152,"admP":4,"alqP":54,"propP":58},"LIMA SUR":{"adm":24,"alq":56,"prop":17,"permP":91,"permT":6,"jpl":25,"je":65,"ss":7,"tot":97,"admP":23,"alqP":53,"propP":15},"LORETO":{"adm":6,"alq":11,"prop":29,"permP":38,"permT":8,"jpl":15,"je":28,"ss":3,"tot":46,"admP":5,"alqP":8,"propP":25},"MADRE DE DIOS":{"adm":0,"alq":18,"prop":14,"permP":31,"permT":1,"jpl":8,"je":21,"ss":3,"tot":32,"admP":0,"alqP":17,"propP":14},"MOQUEGUA":{"adm":1,"alq":2,"prop":28,"permP":30,"permT":1,"jpl":8,"je":20,"ss":3,"tot":31,"admP":1,"alqP":2,"propP":27},"PASCO":{"adm":0,"alq":16,"prop":4,"permP":17,"permT":3,"jpl":6,"je":12,"ss":2,"tot":20,"admP":0,"alqP":13,"propP":4},"PIURA":{"adm":6,"alq":39,"prop":40,"permP":74,"permT":11,"jpl":19,"je":59,"ss":7,"tot":85,"admP":6,"alqP":32,"propP":36},"PUENTE PIEDRA-VENTANILLA":{"adm":0,"alq":33,"prop":18,"permP":46,"permT":5,"jpl":8,"je":39,"ss":4,"tot":51,"admP":0,"alqP":31,"propP":15},"PUNO":{"adm":12,"alq":19,"prop":52,"permP":79,"permT":4,"jpl":27,"je":50,"ss":6,"tot":83,"admP":12,"alqP":16,"propP":51},"SAN MARTIN":{"adm":0,"alq":57,"prop":20,"permP":69,"permT":8,"jpl":17,"je":54,"ss":6,"tot":77,"admP":0,"alqP":51,"propP":18},"SANTA":{"adm":3,"alq":21,"prop":46,"permP":65,"permT":5,"jpl":15,"je":49,"ss":6,"tot":70,"admP":3,"alqP":21,"propP":41},"SELVA CENTRAL":{"adm":12,"alq":20,"prop":9,"permP":36,"permT":5,"jpl":12,"je":26,"ss":3,"tot":41,"admP":10,"alqP":18,"propP":8},"SUB SISTEMA NACIONAL ESPECIALIZADO EN EXTINCI\u00d3N DE DOMINIO":{"adm":0,"alq":3,"prop":0,"permP":1,"permT":2,"jpl":0,"je":2,"ss":1,"tot":3,"admP":0,"alqP":1,"propP":0},"SULLANA":{"adm":4,"alq":15,"prop":30,"permP":33,"permT":16,"jpl":10,"je":36,"ss":3,"tot":49,"admP":3,"alqP":5,"propP":25},"TACNA":{"adm":2,"alq":8,"prop":32,"permP":38,"permT":4,"jpl":6,"je":32,"ss":4,"tot":42,"admP":2,"alqP":7,"propP":29},"TUMBES":{"adm":1,"alq":15,"prop":18,"permP":29,"permT":5,"jpl":8,"je":23,"ss":3,"tot":34,"admP":1,"alqP":13,"propP":15},"UCAYALI":{"adm":7,"alq":15,"prop":28,"permP":42,"permT":8,"jpl":16,"je":30,"ss":4,"tot":50,"admP":5,"alqP":14,"propP":23},"_TOTAL":{"adm":549,"alq":1343,"prop":991,"permP":2593,"permT":290,"jpl":650,"je":1991,"ss":242,"tot":2883,"admP":513,"alqP":1177,"propP":903}};
   function pct(a,b){ return b ? ((a*100/b).toFixed(1)+'%') : '0%'; }
+  var JPAZ = {"AMAZONAS":185,"ANCASH":457,"APURIMAC":285,"AREQUIPA":233,"AYACUCHO":382,"CAJAMARCA":490,"CALLAO":7,"CA\u00d1ETE":93,"CUSCO":328,"HUANCAVELICA":238,"HUANUCO":486,"HUAURA":121,"ICA":84,"JUNIN":434,"LA LIBERTAD":229,"LAMBAYEQUE":352,"LIMA":0,"LIMA ESTE":74,"LIMA NORTE":25,"LIMA SUR":7,"LORETO":118,"MADRE DE DIOS":25,"MOQUEGUA":83,"PASCO":60,"PIURA":194,"PUENTE PIEDRA-VENTANILLA":11,"PUNO":429,"SAN MARTIN":188,"SANTA":97,"SELVA CENTRAL":81,"SULLANA":76,"TACNA":58,"TUMBES":33,"UCAYALI":82};
   // Resumen de recursos de una Corte para el tooltip del mapa (hover).
   window.corteResumenHtml = function(appName){
     var dep=RES.dep[appName], j=RES.jueces[appName], r=RES.resumen[appName], loc=RES.locales.byDep[appName];
@@ -1294,6 +1296,8 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     if(r) h+='<div class="tt-detail">Jueces y auxiliares: <strong>'+fnum(r.total)+'</strong> <span style="color:#9aa">(jueces '+fnum(r.jueces)+' \u00b7 aux '+fnum(r.aux)+')</span></div>';
     if(loc) h+='<div class="tt-detail">Locales alquilados: <strong>'+fnum(loc.n)+'</strong> <span style="color:#9aa">('+money(loc.costo)+'/mes)</span></div>';
     else h+='<div class="tt-detail" style="color:#9aa">Locales alquilados: dato por departamento</div>';
+    var jp = JPAZ.hasOwnProperty(appName) ? JPAZ[appName] : null;
+    if(jp!==null) h+='<div class="tt-detail">Juzgados de paz: <strong>'+fnum(jp)+'</strong></div>';
     return h;
   };
   window.corteResumenCard = function(appName){
@@ -1306,6 +1310,8 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     if(r) items+='<div class="res-item"><div class="rv">'+fnum(r.cas)+'</div><div class="rl">R\u00e9gimen CAS</div><div class="rs">D.L.728 '+fnum(r.dl728p)+' \u00b7 D.L.276 '+fnum(r.dl276)+'</div></div>';
     if(loc) items+='<div class="res-item"><div class="rv">'+fnum(loc.n)+'</div><div class="rl">Locales alquilados</div><div class="rs">'+money(loc.costo)+' / mes</div></div>';
     else items+='<div class="res-item"><div class="rv">\u2014</div><div class="rl">Locales alquilados</div><div class="rs">dato por departamento</div></div>';
+    var jp = JPAZ.hasOwnProperty(appName) ? JPAZ[appName] : null;
+    if(jp!==null) items+='<div class="res-item"><div class="rv">'+fnum(jp)+'</div><div class="rl">Juzgados de paz</div><div class="rs">junio 2026</div></div>';
     return '<h4>Datos institucionales de la corte</h4><div class="res-grid">'+items+'</div>';
   };
   var curTab = 'dep';
@@ -1427,6 +1433,15 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     return h+'</tbody></table><p class="rec-note">Inmuebles alquilados por el Poder Judicial, agrupados por departamento geogr\u00e1fico, agosto 2026. Fuente: Locales alquilados.</p>';
   }
 
+  function tableJPaz(cc){
+    var keys=Object.keys(JPAZ).sort();
+    var total=0; keys.forEach(function(k){total+=JPAZ[k];});
+    var h='<table class="rec-table"><thead><tr><th>Corte / Distrito Judicial</th><th class="n">Juzgados de paz</th></tr></thead><tbody>';
+    keys.forEach(function(k){var a=(k===cc)?' class="hl"':'';h+='<tr'+a+'><td>'+esc2(k)+'</td><td class="n b">'+fnum(JPAZ[k])+'</td></tr>';});
+    h+='<tr class="tot"><td>TOTAL NACIONAL</td><td class="n b">'+fnum(total)+'</td></tr>';
+    return h+'</tbody></table><p class="rec-note">Juzgados de paz por distrito judicial, junio 2026. El distrito judicial de Lima (Cercado) no registra juzgados de paz (0). Total nacional: '+fnum(total)+' juzgados de paz. Fuente: Web del Poder Judicial (hoja \u00abJPNL JUNIO2026\u00bb).</p>';
+  }
+
   function tableDep2024(cc){
     var D=DEP2024, t=D._TOTAL;
     var keys=Object.keys(D).filter(function(k){return k[0]!=='_';}).sort();
@@ -1470,6 +1485,7 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     else if(curTab==='dep2024') el.innerHTML=tableDep2024(cc);
     else if(curTab==='jueces') el.innerHTML=tableJueces(cc);
     else if(curTab==='resumen') el.innerHTML=tableResumen(cc);
+    else if(curTab==='jpaz') el.innerHTML=tableJPaz(cc);
     else el.innerHTML=tableLocales();
     var hl=el.querySelector('tr.hl');
     if(hl) hl.scrollIntoView({block:'nearest'});
