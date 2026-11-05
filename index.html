@@ -1386,13 +1386,15 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
   function renderSummary(){
     var d=RES.dep._TOTAL, j=RES.jueces._TOTAL, r=RES.resumen._NAC, l=RES.locales.total;
     var ggN=0, ggCosto=0; GGLOC.forEach(function(v){ ggN++; ggCosto+=v.costo; });
-    var locNTotal=l.n+ggN, locCostoTotal=l.costo+ggCosto;
+    var cortesN=0, cortesC=0; LOCALES_CORTES.forEach(function(v){ cortesN++; cortesC+=v.costo; });
+    var cortesTotalN=l.n+cortesN, cortesTotalC=l.costo+cortesC;
+    var locNTotal=cortesTotalN+ggN, locCostoTotal=cortesTotalC+ggCosto;
     var el=document.getElementById('rec-summary');
     el.innerHTML =
       kpi('Dependencias jurisdiccionales', fnum(d.tot), 'JPL '+fnum(d.jpl)+' \u00b7 JE '+fnum(d.je)+' \u00b7 Salas '+fnum(d.ss)+' \u00b7 S.Suprema '+fnum(d.ssup))
     + kpi('Jueces (Cortes Superiores)', fnum(j.tot), 'Titulares '+fnum(j.tit)+' \u00b7 Provisionales '+fnum(j.prov)+' \u00b7 Supernumerarios '+fnum(j.sup))
     + kpi('Personal total del PJ', fnum(r.total), 'Jueces '+fnum(r.jueces)+' \u00b7 Aux. jurisd. y admin. '+fnum(r.aux))
-    + kpi('Locales alquilados', fnum(locNTotal), money(locCostoTotal)+' / mes \u00b7 '+fnum(l.n)+' generales + '+fnum(ggN)+' GG');
+    + kpi('Locales alquilados', fnum(locNTotal), money(locCostoTotal)+' / mes \u00b7 '+fnum(cortesTotalN)+' cortes + '+fnum(ggN)+' GG');
   }
 
   function tableDep(cc){
@@ -1446,11 +1448,19 @@ const RES = {"dep":{"CORTE SUPREMA":{"jplP":0,"jplT":0,"jpl":0,"jeP":0,"jeT":1,"
     var keys=Object.keys(by).sort(function(a,b){return by[b].n-by[a].n;});
     var h='<table class="rec-table"><thead><tr><th>Departamento</th><th class="n">N\u00b0 locales</th><th class="n">Costo mensual</th></tr></thead><tbody>';
     keys.forEach(function(k){var v=by[k];h+='<tr><td>'+esc2(k)+'</td><td class="n">'+fnum(v.n)+'</td><td class="n b">'+money(v.costo)+'</td></tr>';});
-    var t=RES.locales.total;h+='<tr class="tot"><td>TOTAL NACIONAL</td><td class="n">'+fnum(t.n)+'</td><td class="n b">'+money(t.costo)+'</td></tr>';
-    return h+'</tbody></table><p class="rec-note">Inmuebles alquilados por el Poder Judicial, agrupados por departamento geogr\u00e1fico, agosto 2026. Fuente: Locales alquilados.</p>';
+    var extraN=0, extraC=0;
+    LOCALES_CORTES.forEach(function(v){
+      extraN++; extraC+=v.costo;
+      h+='<tr class="hl-gg"><td>'+esc2(v.anot)+' <span class="gg-flag">local GG</span></td><td class="n">1</td><td class="n b">'+money(v.costo)+'</td></tr>';
+    });
+    var tN=RES.locales.total.n+extraN, tC=RES.locales.total.costo+extraC;
+    h+='<tr class="tot"><td>TOTAL NACIONAL</td><td class="n">'+fnum(tN)+'</td><td class="n b">'+money(tC)+'</td></tr>';
+    return h+'</tbody></table><p class="rec-note">Inmuebles alquilados por el Poder Judicial, agrupados por departamento geogr\u00e1fico, agosto 2026. Incluye el local de la Corte Superior Nacional de Justicia Penal Especializada (CSNJPE), antes registrado en la Gerencia General. Total: '+fnum(tN)+' locales \u00b7 '+money(tC)+' mensuales. Fuente: Locales alquilados y GG Alquileres.</p>';
   }
 
-  var GGLOC = [{"item":1,"dir":"Avenida Nicolás de Pierola N° 745-749 y al Jiron Ocoña N°237-245","dist":"LIMA","tipo":"Edificación","area":"579.6","costo":63178.3,"anot":""},{"item":2,"dir":"AV. PETIT THOUARS N° 3941 y 3935","dist":"SAN ISIDRO","tipo":"Edificación","area":"1636","costo":53988,"anot":""},{"item":3,"dir":"JR CARABAYA 831 OFICINA 201, 301, JR CONTUMAZA N° 846 OFICINA 201, 203, 302, 603","dist":"LIMA","tipo":"Edificación","area":"1798.33","costo":88781.18,"anot":""},{"item":4,"dir":"JR. CONTUMAZA N° 846 OFICINA 202","dist":"LIMA","tipo":"Edificación","area":"257.1","costo":12535.12,"anot":""},{"item":5,"dir":"JR. CONTUMAZA N° 846 OFICINAS 301-303","dist":"LIMA","tipo":"Edificación","area":"No precisa","costo":29507.23,"anot":""},{"item":6,"dir":"JR. CONTUMAZA 846 OF. 501-503 LIMA","dist":"LIMA","tipo":"Edificación","area":"600","costo":28751.88,"anot":""},{"item":7,"dir":"AV. NICOLAS DE PIEROLA N° 476, 478, 482, 486, 488, 492 - AV. TACNA 708, 718, 722, 724 - PSJE. INCLAN 137, 143, 147 Y 151","dist":"LIMA","tipo":"Edificación","area":"4836.5","costo":334481.6,"anot":"CORTE SUPERIOR NACIONAL DE JUSTICIA PENAL ESPECIALIZADA (CSNJPE)"},{"item":8,"dir":"PASAJE ACUÑA NO. 127,CERCADO DE LIMA - UBICADAS EN EL PISO 6 DEL EDIFICIO ACUÑA SITO EN PASAJE ACUÑA NO. 103-107-111-115-119-123-131- 135-139-147","dist":"LIMA","tipo":"Edificación","area":"800","costo":38017.8,"anot":""},{"item":9,"dir":"Jr. CONTUMAZA N°846, OFICINA 502, 5TO PISO","dist":"LIMA","tipo":"Edificación","area":"257,1","costo":12135.12,"anot":""},{"item":10,"dir":"JR CONTUMAZA N° 846 OF. 601 SEXTO PISO","dist":"LIMA","tipo":"Edificación","area":"374.2","costo":17662.24,"anot":""},{"item":11,"dir":"JR. CHOTA N° 796-878 -ESQUINA JR. QUILCA N° 504-530-534","dist":"LIMA","tipo":"Edificación","area":"1634.56","costo":32000,"anot":""},{"item":12,"dir":"AV. PASEO LA REPUBLICA N°291, OFICINA 607","dist":"LIMA","tipo":"Edificación","area":"126","costo":6000,"anot":""},{"item":13,"dir":"JR. ANTONIO MIROQUEZADA N° 179-185 (SOTANO, PISO 1 Y MEZZANINE Y 191 EN EL 4TO PISO (OFICINA 401, 402,405,406,407, 408, 409 Y 410","dist":"LIMA","tipo":"Edificación","area":"1420.32","costo":65107.47,"anot":""}];
+    var GGLOC = [{"item":1,"dir":"Avenida Nicolás de Pierola N° 745-749 y al Jiron Ocoña N°237-245","dist":"LIMA","tipo":"Edificación","area":"579.6","costo":63178.3,"anot":""},{"item":2,"dir":"AV. PETIT THOUARS N° 3941 y 3935","dist":"SAN ISIDRO","tipo":"Edificación","area":"1636","costo":53988,"anot":""},{"item":3,"dir":"JR CARABAYA 831 OFICINA 201, 301, JR CONTUMAZA N° 846 OFICINA 201, 203, 302, 603","dist":"LIMA","tipo":"Edificación","area":"1798.33","costo":88781.18,"anot":""},{"item":4,"dir":"JR. CONTUMAZA N° 846 OFICINA 202","dist":"LIMA","tipo":"Edificación","area":"257.1","costo":12535.12,"anot":""},{"item":5,"dir":"JR. CONTUMAZA N° 846 OFICINAS 301-303","dist":"LIMA","tipo":"Edificación","area":"No precisa","costo":29507.23,"anot":""},{"item":6,"dir":"JR. CONTUMAZA 846 OF. 501-503 LIMA","dist":"LIMA","tipo":"Edificación","area":"600","costo":28751.88,"anot":""},{"item":8,"dir":"PASAJE ACUÑA NO. 127,CERCADO DE LIMA - UBICADAS EN EL PISO 6 DEL EDIFICIO ACUÑA SITO EN PASAJE ACUÑA NO. 103-107-111-115-119-123-131- 135-139-147","dist":"LIMA","tipo":"Edificación","area":"800","costo":38017.8,"anot":""},{"item":9,"dir":"Jr. CONTUMAZA N°846, OFICINA 502, 5TO PISO","dist":"LIMA","tipo":"Edificación","area":"257,1","costo":12135.12,"anot":""},{"item":10,"dir":"JR CONTUMAZA N° 846 OF. 601 SEXTO PISO","dist":"LIMA","tipo":"Edificación","area":"374.2","costo":17662.24,"anot":""},{"item":11,"dir":"JR. CHOTA N° 796-878 -ESQUINA JR. QUILCA N° 504-530-534","dist":"LIMA","tipo":"Edificación","area":"1634.56","costo":32000,"anot":""},{"item":12,"dir":"AV. PASEO LA REPUBLICA N°291, OFICINA 607","dist":"LIMA","tipo":"Edificación","area":"126","costo":6000,"anot":""},{"item":13,"dir":"JR. ANTONIO MIROQUEZADA N° 179-185 (SOTANO, PISO 1 Y MEZZANINE Y 191 EN EL 4TO PISO (OFICINA 401, 402,405,406,407, 408, 409 Y 410","dist":"LIMA","tipo":"Edificación","area":"1420.32","costo":65107.47,"anot":""}];
+  var LOCALES_CORTES = [{"dir":"AV. NICOLAS DE PIEROLA N° 476, 478, 482, 486, 488, 492 - AV. TACNA 708, 718, 722, 724 - PSJE. INCLAN 137, 143, 147 Y 151","dist":"LIMA","tipo":"Edificación","area":"4836.5","costo":334481.6,"anot":"CORTE SUPERIOR NACIONAL DE JUSTICIA PENAL ESPECIALIZADA (CSNJPE)"}];
+
 
   function tableLocalesGG(){
     var h='<table class="rec-table"><thead><tr>'
