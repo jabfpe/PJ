@@ -11,6 +11,13 @@ body{background:var(--bg);font-family:'Segoe UI',Arial,sans-serif;color:var(--in
 .header-bar{background:linear-gradient(135deg,#123d70,#2474bd);color:#fff;padding:16px 28px;box-shadow:0 2px 12px #0002;display:flex;justify-content:space-between;align-items:center}
 .header-bar h1{font-size:22px;margin:0}.header-bar .sub{opacity:.85;font-size:12px}
 .header-bar .right{font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.8}
+.header-bar .hb-left{display:flex;align-items:center;gap:14px;min-width:0}
+.back-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 16px 0 12px;border-radius:24px;background:#ffffff1f;border:1px solid #ffffff4d;color:#fff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}
+.back-btn:hover{background:#ffffff33;transform:translateX(-2px);box-shadow:0 3px 12px #0003}
+.back-btn:focus-visible{outline:3px solid #c9a84c;outline-offset:2px}
+.back-btn svg{width:18px;height:18px;flex:0 0 auto}
+.back-btn .bb-txt{white-space:nowrap}
+@media(max-width:640px){.back-btn{padding:0 12px;height:36px}.back-btn .bb-txt{display:none}}
 .wrap{max-width:1500px;margin:14px auto;padding:0 14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 16px #1d355712}
 .filters{padding:14px;display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;align-items:end}
@@ -234,7 +241,13 @@ footer{padding:12px 0 24px;color:var(--muted);font-size:10px;text-align:center}
 </head>
 <body>
 <div class="header-bar">
-  <div><h1>Mapa Interactivo de Carga Procesal Judicial</h1><div class="sub">Cortes Superiores de Justicia &middot; Filtros por a&ntilde;o, corte, especialidad, etapa, variable, tipo de &oacute;rgano y tipo de proceso</div></div>
+  <div class="hb-left">
+    <a class="back-btn" href="https://view.genially.com/6ae403fa995b2e520152d2d5" title="Volver a la presentaci&oacute;n" aria-label="Volver a la presentaci&oacute;n">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      <span class="bb-txt">Volver a la presentaci&oacute;n</span>
+    </a>
+    <div><h1>Mapa Interactivo de Carga Procesal Judicial</h1><div class="sub">Cortes Superiores de Justicia &middot; Filtros por a&ntilde;o, corte, especialidad, etapa, variable, tipo de &oacute;rgano y tipo de proceso</div></div>
+  </div>
   <div class="right">PODER JUDICIAL DEL PER&Uacute; &middot; Propuesta 2027-2028</div>
 </div>
 <div class="wrap">
